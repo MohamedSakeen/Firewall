@@ -27,7 +27,7 @@ def process_packet(packet):
             "protocol": protocol
         }
 
-        with open(r"P:\Firewall\backend\logs\traffic.json", "a") as f:
+        with open(r"\backend\logs\traffic.json", "a") as f:
             f.write(json.dumps(log_data) + "\n")
 
 sniff(prn=process_packet,store=False)

@@ -1,5 +1,5 @@
 import json
-with open(r"P:\Firewall\backend\firewall\rules.json", "r") as f:
+with open(r"\backend\firewall\rules.json", "r") as f:
     rules = json.load(f)
 
 blocked_ips = rules["blocked_ips"]

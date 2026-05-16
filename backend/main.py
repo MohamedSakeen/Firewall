@@ -1,8 +1,10 @@
 from scapy.all import sniff
 from scapy.layers.inet import IP, TCP
 
-from firewall.engine import check_packet
-from IDS.detector import detect_port_scan
+from backend.engine.firewall.engine import check_packet
+from backend.engine.IDS.detector import detect_port_scan
+from engine.IDS.detection_pipeline import run_detection_pipeline
+from backend.engine.packet_normalizer import normalize_packet 
 
 def process_packet(packet):
 
@@ -18,5 +20,8 @@ def process_packet(packet):
         print(f"{src_ip}:{dst_ip}:{dst_port} -> {firewall_result} (Port Scan: {port_scan_result})")
         if port_scan_result:
             print(f"[ALERT] port Scan Detected from {src_ip} on port {dst_port}")
+
+        normalized_packet = normalize_packet(packet)
+        run_detection_pipeline(normalized_packet,packet)
 
 sniff(prn=process_packet, store=False)

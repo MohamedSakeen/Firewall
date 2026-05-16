@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": "block",
+    "src_ip": "10.0.0.5",
+    "protocol": "ANY",
+    "port": "ANY",
+    "description": "Known attacker"
+  },
+
+  {
+    "id": 2,
+    "priority": 10,
+    "action": "allow",
+    "protocol": "TCP",
+    "port": 443,
+    "description": "Allow HTTPS"
+  },
+
+  {
+    "id": 3,
+    "priority": 50,
+    "action": "block",
+    "protocol": "TCP",
+    "port": 23,
+    "description": "Block Telnet"
+  }
+]
