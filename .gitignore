@@ -1,0 +1,21 @@
+# Operating system specific files
+.DS_Store
+Thumbs.db
+
+# Build and output files
+*.log
+*.tmp
+*.bak
+dist/
+build/
+
+# IDE and editor specific files
+.idea/
+.vscode/
+
+# Node.js and npm files
+node_modules/
+
+# User-specific files
+.user/
+.config/
