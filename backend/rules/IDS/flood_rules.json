@@ -1,0 +1,10 @@
+[
+  {
+    "name": "SYN Flood",
+    "type": "syn_flood",
+    "threshold": 100,
+    "time_window": 3,
+    "severity": "critical",
+    "score": 80
+  }
+]

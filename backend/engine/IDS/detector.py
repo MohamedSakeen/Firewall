@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from firewall.blocker import block_ip
+from backend.engine.firewall.blocker import block_ip
 scan_tracker = defaultdict(set)
 
 #detect port scan 
@@ -14,5 +14,5 @@ def detect_port_scan(src_ip,dst_port):
     return False
 
 def log_alert(message):
-    with open(r"P:\Firewall\backend\IDS\alerts.log", "a") as f:
+    with open(r"\backend\IDS\alerts.log", "a") as f:
         f.write(f"{datetime.now()} - {message}\n")

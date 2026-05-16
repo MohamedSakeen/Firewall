@@ -1,0 +1,21 @@
+[
+  {
+    "name": "Basic Port Scan",
+    "type": "port_scan",
+    "threshold": 10,
+    "time_window": 5,
+    "severity": "medium",
+    "score": 20,
+    "action": "alert"
+  },
+
+  {
+    "name": "Aggressive Port Scan",
+    "type": "port_scan",
+    "threshold": 30,
+    "time_window": 3,
+    "severity": "high",
+    "score": 50,
+    "action": "block"
+  }
+]
