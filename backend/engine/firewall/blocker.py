@@ -4,7 +4,7 @@ from datetime import datetime
 BLOCKED_IPS = set()
 
 def log_block(ip):
-    with open(r"\backend\logs\blocked.log", "a") as f:
+    with open(r"logs\blocked.log", "a") as f:
         f.write(f"{datetime.now()} - Blocked IP: {ip}\n")
 
 def block_ip(ip):

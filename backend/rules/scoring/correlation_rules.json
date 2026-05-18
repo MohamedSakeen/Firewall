@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Recon Followed By Flood",
+    "conditions": [
+      "Basic Port Scan",
+      "SYN Flood"
+    ],
+    "severity": "critical",
+    "score_bonus": 50
+  },
+  {
+    "name": "Web Attack Sequence",
+    "conditions": [
+      "SQL Injection",
+      "XSS"
+    ],
+    "severity": "critical",
+    "score_bonus": 50
+  }
+]

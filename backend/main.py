@@ -1,10 +1,14 @@
+import os
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from scapy.all import sniff
 from scapy.layers.inet import IP, TCP
 
-from backend.engine.firewall.engine import check_packet
-from backend.engine.IDS.detector import detect_port_scan
+from engine.firewall.engine import check_packet
+from engine.IDS.detector import detect_port_scan
 from engine.IDS.detection_pipeline import run_detection_pipeline
-from backend.engine.packet_normalizer import normalize_packet 
+from engine.packet_normalizer import normalize_packet 
 
 def process_packet(packet):
 
