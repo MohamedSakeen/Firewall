@@ -14,7 +14,7 @@ def log_firewall_event(packet,decision):
     }
 
     with open(
-            r"\backend\logs\firewall_events.log",
+            r"logs\firewall_events.log",
             "a"
         ) as file:
 

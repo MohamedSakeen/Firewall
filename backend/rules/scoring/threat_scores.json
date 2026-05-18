@@ -1,0 +1,10 @@
+{
+  "Basic Port Scan": 20,
+  "Aggressive Port Scan": 50,
+  "SYN Flood": 80,
+  "ICMP Flood": 60,
+  "UDP Flood": 60,
+  "Brute Force": 70,
+  "SQL Injection": 90,
+  "XSS": 90
+}
