@@ -8,7 +8,8 @@ from scapy.layers.inet import IP, TCP
 from engine.firewall.engine import check_packet
 from engine.IDS.detector import detect_port_scan
 from engine.IDS.detection_pipeline import run_detection_pipeline
-from engine.packet_normalizer import normalize_packet 
+from backend.engine.packet.packet_normalizer import normalize_packet 
+from backend.engine.firewall.stateful_evaluvator import evaluate_stateful_packet
 
 def process_packet(packet):
 
@@ -26,6 +27,11 @@ def process_packet(packet):
             print(f"[ALERT] port Scan Detected from {src_ip} on port {dst_port}")
 
         normalized_packet = normalize_packet(packet)
+        state_result = evaluate_stateful_packet(normalized_packet)
+        print(
+            f"[STATEFUL] "
+            f"{state_result}"
+        )
         run_detection_pipeline(normalized_packet,packet)
 
 sniff(prn=process_packet, store=False)

@@ -7,6 +7,7 @@ def normalize_packet(packet):
         "protocol" : None,
         "src_port" : None,
         "dst_port" : None,
+        "tcp_flags" : None
     }
     if IP in packet:
         normalized["src_ip"] = packet[IP].src
@@ -15,6 +16,7 @@ def normalize_packet(packet):
             normalized["protocol"] = "TCP"
             normalized["src_port"] = packet[TCP].sport
             normalized["dst_port"] = packet[TCP].dport
+            normalized["tcp_flags"] = packet[TCP].flags
         elif UDP in packet:
             normalized["protocol"] = "UDP"
             normalized["src_port"] = packet[UDP].sport
