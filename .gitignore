@@ -19,3 +19,7 @@ node_modules/
 # User-specific files
 .user/
 .config/
+file.txt
+generate_*.py
+file_structure.md
+deep-research-report.md
