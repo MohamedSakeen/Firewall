@@ -18,6 +18,11 @@ from engine.scoring.correlation_engine import (
     correlate_events
 )
 
+from engine.IPS.ips_pipeline import (
+    process_ips_action
+)
+
+
 def create_alert(attack_type,severity, src_ip,score):
     alert = {
         "timestamp": str(datetime.now()),
@@ -37,6 +42,7 @@ def create_alert(attack_type,severity, src_ip,score):
     events = get_threat_event(src_ip)
     total_score = calculate_threat_score(events)
     severity = determine_severity(total_score)
+    process_ips_action(src_ip,severity)
     correlated_attacks = correlate_events(events)
 
     print(f"[SEVERITY]"

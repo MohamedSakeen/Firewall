@@ -1,0 +1,23 @@
+[
+  {
+    "severity": "low",
+    "action": "log"
+  },
+
+  {
+    "severity": "medium",
+    "action": "alert"
+  },
+
+  {
+    "severity": "high",
+    "action": "temporary_block",
+    "duration": 300
+  },
+
+  {
+    "severity": "critical",
+    "action": "quarantine",
+    "duration": 1800
+  }
+] 
