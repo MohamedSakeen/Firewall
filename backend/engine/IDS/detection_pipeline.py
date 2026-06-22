@@ -1,18 +1,16 @@
+from pathlib import Path
+import json
+
 from .recon_detector import detect_port_scan
 from .flood_detector import detect_syn_flood
 from .alert_manager import create_alert
-import json
 
-with open(
-    r"rules\IDS\recon_rules.json"
-) as file:
+BASE = Path(__file__).resolve().parent.parent / "rules" / "IDS"
 
+with (BASE / "recon_rules.json").open() as file:
     recon_rules = json.load(file)
 
-with open(
-    r"rules\IDS\flood_rules.json"
-) as file:
-
+with (BASE / "flood_rules.json").open() as file:
     flood_rules = json.load(file)
 
 def run_detection_pipeline(packet, raw_packet):

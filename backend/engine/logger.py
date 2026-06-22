@@ -1,9 +1,11 @@
 from datetime import datetime 
 import json
+from pathlib import Path
 
-from zope import event
+LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
 
-def log_firewall_event(packet,decision):
+
+def log_firewall_event(packet, decision):
     event = {
         "timestamp": str(datetime.now()),
         "src_ip": packet["src_ip"],
@@ -13,11 +15,5 @@ def log_firewall_event(packet,decision):
         "action": decision["action"]
     }
 
-    with open(
-            r"logs\firewall_events.log",
-            "a"
-        ) as file:
-
-            file.write(
-                json.dumps(event) + "\n"
-            )
+    with (LOG_DIR / "firewall_events.log").open("a") as file:
+        file.write(json.dumps(event) + "\n")

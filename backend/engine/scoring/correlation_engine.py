@@ -1,6 +1,9 @@
 import json
+from pathlib import Path
 
-with open("rules/scoring/correlation_rules.json") as file:
+BASE = Path(__file__).resolve().parent.parent / "rules" / "scoring"
+
+with (BASE / "correlation_rules.json").open() as file:
     correlation_rules = json.load(file)
 
 def correlate_events(events):
