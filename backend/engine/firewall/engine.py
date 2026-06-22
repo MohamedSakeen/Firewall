@@ -6,10 +6,8 @@ logger = logging.getLogger(__name__)
 
 
 def _load_rules():
-    # Try backend rules first, then project root rules
     candidates = [
-        Path(__file__).parents[2] / "rules" / "firewall" / "rules.json",
-        Path(__file__).parents[3] / "rules" / "firewall" / "rules.json",
+        Path(__file__).parents[1] / "rules" / "firewall" / "rules.json",
     ]
     for p in candidates:
         try:

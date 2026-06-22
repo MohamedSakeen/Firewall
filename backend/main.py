@@ -8,8 +8,8 @@ from scapy.layers.inet import IP, TCP
 from engine.firewall.engine import check_packet
 from engine.IDS.detector import detect_port_scan
 from engine.IDS.detection_pipeline import run_detection_pipeline
-from backend.engine.packet.packet_normalizer import normalize_packet 
-from backend.engine.firewall.stateful_evaluvator import evaluate_stateful_packet
+from engine.packet.packet_normalizer import normalize_packet 
+from engine.firewall.stateful_evaluvator import evaluate_stateful_packet
 
 def process_packet(packet):
 

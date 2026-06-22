@@ -1,25 +1,61 @@
-# Operating system specific files
+# Operating system files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Build and output files
+# Editor and IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.python-version
+
+# Python artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+venv/
+env/
+ENV/
+.venv/
+pip-wheel-metadata/
+*.egg-info/
+
+# Node and frontend artifacts
+node_modules/
+dist/
+coverage/
+.parcel-cache/
+.eslintcache
+
+# Build outputs and logs
+build/
 *.log
 *.tmp
 *.bak
-dist/
-build/
 
-# IDE and editor specific files
-.idea/
-.vscode/
-
-# Node.js and npm files
-node_modules/
-
-# User-specific files
-.user/
-.config/
+# Repository-specific generated files
 file.txt
 generate_*.py
 file_structure.md
 deep-research-report.md
+
+# Local user files
+.user/
+.config/

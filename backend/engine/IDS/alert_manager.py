@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from pathlib import Path
 
 from engine.scoring.threat_tracker import (
     add_threat_event,
@@ -22,8 +23,10 @@ from engine.IPS.ips_pipeline import (
     process_ips_action
 )
 
+LOG_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 
-def create_alert(attack_type,severity, src_ip,score):
+
+def create_alert(attack_type, severity, src_ip, score):
     alert = {
         "timestamp": str(datetime.now()),
         "attack": attack_type,
@@ -31,7 +34,7 @@ def create_alert(attack_type,severity, src_ip,score):
         "src_ip": src_ip,
         "score": score
     }
-    with open('logs/alerts.json', 'a') as f:
+    with (LOG_DIR / "alerts.json").open("a") as f:
         f.write(json.dumps(alert) + '\n')
 
     print(f"[ALERT] \n{attack_type} \nfrom {src_ip}")
