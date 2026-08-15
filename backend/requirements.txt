@@ -3,3 +3,5 @@ flask
 flask-cors
 flask-socketio
 eventlet
+scikit-learn
+pytest
