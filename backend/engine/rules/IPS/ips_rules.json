@@ -1,23 +1,32 @@
 [
   {
-    "severity": "low",
-    "action": "log"
+    "severity": "informational",
+    "action": "log",
+    "duration": 0,
+    "description": "Audit logging for low-risk events"
   },
-
+  {
+    "severity": "low",
+    "action": "rate_limit",
+    "duration": 300,
+    "description": "Bandwidth rate limiting for minor anomalies"
+  },
   {
     "severity": "medium",
-    "action": "alert"
+    "action": "alert",
+    "duration": 600,
+    "description": "Security Operations Center alert dispatch"
   },
-
   {
     "severity": "high",
     "action": "temporary_block",
-    "duration": 300
+    "duration": 3600,
+    "description": "1-hour active packet drop enforcement"
   },
-
   {
     "severity": "critical",
     "action": "quarantine",
-    "duration": 1800
+    "duration": 86400,
+    "description": "24-hour total IP network isolation"
   }
-] 
+]

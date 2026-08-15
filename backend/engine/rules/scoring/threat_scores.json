@@ -1,10 +1,18 @@
 {
-  "Basic Port Scan": 20,
-  "Aggressive Port Scan": 50,
-  "SYN Flood": 80,
-  "ICMP Flood": 60,
-  "UDP Flood": 60,
-  "Brute Force": 70,
-  "SQL Injection": 90,
-  "XSS": 90
+  "Basic TCP Port Scan": 25,
+  "Aggressive TCP Port Scan": 55,
+  "UDP Service Discovery Probe": 30,
+  "SYN Stealth Scan (Nmap -sS)": 60,
+  "SMB Share & Domain Enumeration": 40,
+  "SSH Brute Force Attack": 65,
+  "FTP Credential Stuffing": 50,
+  "RDP Password Spraying": 75,
+  "HTTP Basic Auth Brute Force": 55,
+  "TCP SYN Volumetric Flood": 85,
+  "UDP Bandwidth Amplification Flood": 80,
+  "ICMP Ping Flood (Smurf Attack)": 65,
+  "HTTP GET Application Layer Flood": 90,
+  "SQL Injection Attempt": 90,
+  "Cross-Site Scripting (XSS)": 85,
+  "Decoy Honeypot Interaction": 97
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "FW-OUT-001",
+    "name": "Block Unauthorized Outbound SMTP Relay",
+    "priority": 10,
+    "direction": "OUT",
+    "action": "DROP",
+    "protocol": "TCP",
+    "port": 25,
+    "src": "ANY",
+    "dst": "ANY",
+    "description": "Prevent compromised hosts from launching outbound spam/phishing campaigns"
+  },
+  {
+    "id": "FW-OUT-002",
+    "name": "Block Outbound Tor Exit Relay Ports",
+    "priority": 15,
+    "direction": "OUT",
+    "action": "DROP",
+    "protocol": "TCP",
+    "port": 9001,
+    "src": "ANY",
+    "dst": "ANY",
+    "description": "Block unauthorized Tor network egress traffic"
+  },
+  {
+    "id": "FW-OUT-003",
+    "name": "Allow Outbound DNS Queries",
+    "priority": 50,
+    "direction": "OUT",
+    "action": "ALLOW",
+    "protocol": "UDP",
+    "port": 53,
+    "src": "ANY",
+    "dst": "ANY",
+    "description": "Allow internal assets to query enterprise domain name resolvers"
+  },
+  {
+    "id": "FW-OUT-004",
+    "name": "Allow Outbound HTTPS Web Browsing",
+    "priority": 50,
+    "direction": "OUT",
+    "action": "ALLOW",
+    "protocol": "TCP",
+    "port": 443,
+    "src": "ANY",
+    "dst": "ANY",
+    "description": "Allow secure outbound web browsing and API integrations"
+  }
+]

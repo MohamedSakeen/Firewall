@@ -1,21 +1,57 @@
 [
   {
-    "name": "Basic Port Scan",
+    "id": "RECON-001",
+    "name": "Basic TCP Port Scan",
     "type": "port_scan",
     "threshold": 10,
     "time_window": 5,
     "severity": "medium",
-    "score": 20,
-    "action": "alert"
+    "score": 25,
+    "action": "alert",
+    "description": "Sequential or random TCP port probing across 10+ ports"
   },
-
   {
-    "name": "Aggressive Port Scan",
+    "id": "RECON-002",
+    "name": "Aggressive TCP Port Scan",
     "type": "port_scan",
     "threshold": 30,
     "time_window": 3,
     "severity": "high",
-    "score": 50,
-    "action": "block"
+    "score": 55,
+    "action": "temporary_block",
+    "description": "High-velocity multi-port reconnaissance probe"
+  },
+  {
+    "id": "RECON-003",
+    "name": "UDP Service Discovery Probe",
+    "type": "udp_scan",
+    "threshold": 15,
+    "time_window": 10,
+    "severity": "medium",
+    "score": 30,
+    "action": "alert",
+    "description": "UDP port sweep attempting service enumeration"
+  },
+  {
+    "id": "RECON-004",
+    "name": "SYN Stealth Scan (Nmap -sS)",
+    "type": "stealth_scan",
+    "threshold": 8,
+    "time_window": 5,
+    "severity": "high",
+    "score": 60,
+    "action": "temporary_block",
+    "description": "Half-open TCP SYN packets without completed handshakes"
+  },
+  {
+    "id": "RECON-005",
+    "name": "SMB Share & Domain Enumeration",
+    "type": "smb_enum",
+    "threshold": 5,
+    "time_window": 10,
+    "severity": "medium",
+    "score": 40,
+    "action": "alert",
+    "description": "IPC$ and administrative share enumeration probes on port 445"
   }
 ]

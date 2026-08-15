@@ -1,20 +1,46 @@
 [
   {
-    "name": "Recon Followed By Flood",
+    "id": "CORR-001",
+    "name": "Reconnaissance Followed By Brute Force",
     "conditions": [
-      "Basic Port Scan",
-      "SYN Flood"
+      "Basic TCP Port Scan",
+      "SSH Brute Force Attack"
     ],
     "severity": "critical",
-    "score_bonus": 50
+    "score_bonus": 35,
+    "description": "Port scan targeting SSH followed immediately by login brute force"
   },
   {
-    "name": "Web Attack Sequence",
+    "id": "CORR-002",
+    "name": "Reconnaissance Followed By Volumetric Flood",
     "conditions": [
-      "SQL Injection",
-      "XSS"
+      "Aggressive TCP Port Scan",
+      "TCP SYN Volumetric Flood"
     ],
     "severity": "critical",
-    "score_bonus": 50
+    "score_bonus": 45,
+    "description": "Target discovery followed by DDoS flood campaign"
+  },
+  {
+    "id": "CORR-003",
+    "name": "Multi-Vector Web Application Attack",
+    "conditions": [
+      "SQL Injection Attempt",
+      "Cross-Site Scripting (XSS)"
+    ],
+    "severity": "critical",
+    "score_bonus": 50,
+    "description": "Correlated application layer exploit attempts targeting web assets"
+  },
+  {
+    "id": "CORR-004",
+    "name": "Honeypot Trap & Active Reconnaissance",
+    "conditions": [
+      "Decoy Honeypot Interaction",
+      "SYN Stealth Scan (Nmap -sS)"
+    ],
+    "severity": "critical",
+    "score_bonus": 50,
+    "description": "Attacker probed decoy honeypot during active network scan"
   }
 ]
