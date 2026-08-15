@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: 'http://localhost:5000/api' });
 
+// Core Firewall, IDS & IPS endpoints
 export const fetchAlerts = () => api.get('/alerts').then(r => r.data);
 export const fetchRecentAlerts = () => api.get('/dashboard/alerts/recent').then(r => r.data);
 export const fetchDashboardStats = () => api.get('/dashboard/stats').then(r => r.data);
@@ -18,5 +19,15 @@ export const fetchRules = (type) => api.get(`/rules/${type}`).then(r => r.data);
 export const saveRule = (type, filename, data) => api.put(`/rules/${type}/${filename}`, data).then(r => r.data);
 export const fetchLogs = () => api.get('/logs').then(r => r.data);
 
-export default api;
+// Smart Self-Learning Intelligence endpoints
+export const fetchIncidents = () => api.get('/incidents').then(r => r.data);
+export const fetchIncidentGraph = (id) => api.get(`/incidents/${id}/graph`).then(r => r.data);
+export const fetchIncidentTimeline = (id) => api.get(`/incidents/${id}/timeline`).then(r => r.data);
+export const fetchBaselines = () => api.get('/learning/baselines').then(r => r.data);
+export const postFeedback = (feedbackData) => api.post('/learning/feedback', feedbackData).then(r => r.data);
+export const fetchModels = () => api.get('/learning/models').then(r => r.data);
+export const simulatePolicy = (payload) => api.post('/simulation/simulate', payload).then(r => r.data);
+export const counterfactualAnalysis = (payload) => api.post('/simulation/counterfactual', payload).then(r => r.data);
+export const fetchHealth = () => api.get('/health').then(r => r.data);
 
+export default api;
