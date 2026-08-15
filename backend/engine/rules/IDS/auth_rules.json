@@ -1,0 +1,54 @@
+[
+  {
+    "id": "AUTH-001",
+    "name": "SSH Brute Force Attack",
+    "type": "auth_brute_force",
+    "service": "SSH",
+    "target_port": 22,
+    "threshold": 5,
+    "time_window": 60,
+    "severity": "high",
+    "score": 65,
+    "action": "temporary_block",
+    "description": "Multiple failed SSH authentication attempts detected withinsliding window"
+  },
+  {
+    "id": "AUTH-002",
+    "name": "FTP Credential Stuffing",
+    "type": "auth_brute_force",
+    "service": "FTP",
+    "target_port": 21,
+    "threshold": 10,
+    "time_window": 60,
+    "severity": "medium",
+    "score": 50,
+    "action": "alert",
+    "description": "Rapid failed FTP login probes from single source"
+  },
+  {
+    "id": "AUTH-003",
+    "name": "RDP Password Spraying",
+    "type": "auth_brute_force",
+    "service": "RDP",
+    "target_port": 3389,
+    "threshold": 5,
+    "time_window": 120,
+    "severity": "high",
+    "score": 75,
+    "action": "temporary_block",
+    "description": "RDP login anomaly targeting enterprise terminal server"
+  },
+  {
+    "id": "AUTH-004",
+    "name": "HTTP Basic Auth Brute Force",
+    "type": "auth_brute_force",
+    "service": "HTTP",
+    "target_port": 80,
+    "threshold": 15,
+    "time_window": 30,
+    "severity": "medium",
+    "score": 55,
+    "action": "rate_limit",
+    "description": "Excessive 401 Unauthorized responses to administrative portal"
+  }
+]

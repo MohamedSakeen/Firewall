@@ -1,0 +1,34 @@
+[
+  {
+    "id": "RESP-001",
+    "threat_category": "auth_brute_force",
+    "action": "temporary_block",
+    "duration_seconds": 3600,
+    "escalation": "quarantine_on_repeat",
+    "description": "Block repeated authentication failure sources for 1 hour"
+  },
+  {
+    "id": "RESP-002",
+    "threat_category": "port_scan",
+    "action": "rate_limit",
+    "duration_seconds": 1800,
+    "escalation": "temporary_block",
+    "description": "Rate limit reconnaissance scan sources for 30 minutes"
+  },
+  {
+    "id": "RESP-003",
+    "threat_category": "volumetric_flood",
+    "action": "quarantine",
+    "duration_seconds": 86400,
+    "escalation": "permanent_ban",
+    "description": "Quarantine DDoS attack sources for 24 hours"
+  },
+  {
+    "id": "RESP-004",
+    "threat_category": "honeypot_touch",
+    "action": "quarantine",
+    "duration_seconds": 86400,
+    "escalation": "permanent_ban",
+    "description": "Immediate 24-hour quarantine on interaction with decoy honeypot ports"
+  }
+]

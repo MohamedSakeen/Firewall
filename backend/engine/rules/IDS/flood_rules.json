@@ -1,10 +1,46 @@
 [
   {
-    "name": "SYN Flood",
+    "id": "FLD-001",
+    "name": "TCP SYN Volumetric Flood",
     "type": "syn_flood",
     "threshold": 100,
     "time_window": 3,
     "severity": "critical",
-    "score": 80
+    "score": 85,
+    "action": "quarantine",
+    "description": "Massive TCP SYN packet burst exceeding 100 packets within 3 seconds"
+  },
+  {
+    "id": "FLD-002",
+    "name": "UDP Bandwidth Amplification Flood",
+    "type": "udp_flood",
+    "threshold": 150,
+    "time_window": 3,
+    "severity": "critical",
+    "score": 80,
+    "action": "quarantine",
+    "description": "Volumetric UDP packet stream targeting non-listening ports"
+  },
+  {
+    "id": "FLD-003",
+    "name": "ICMP Ping Flood (Smurf Attack)",
+    "type": "icmp_flood",
+    "threshold": 80,
+    "time_window": 5,
+    "severity": "high",
+    "score": 65,
+    "action": "rate_limit",
+    "description": "Excessive ICMP echo request flood attempting network saturation"
+  },
+  {
+    "id": "FLD-004",
+    "name": "HTTP GET Application Layer Flood",
+    "type": "http_flood",
+    "threshold": 200,
+    "time_window": 10,
+    "severity": "critical",
+    "score": 90,
+    "action": "quarantine",
+    "description": "Application-layer HTTP request flood attempting web backend resource exhaustion"
   }
 ]
