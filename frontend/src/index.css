@@ -1,10 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 body {
   margin: 0;
-  background-color: #0a0e1a;
+  background-color: #000000;
   color: #e5e7eb;
 }
 
@@ -13,7 +11,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: #0a0a0a;
 }
 ::-webkit-scrollbar-thumb {
   background: #374151;

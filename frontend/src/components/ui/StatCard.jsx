@@ -1,6 +1,6 @@
 export default function StatCard({ title, value, icon: Icon, colorClass, subtitle }) {
   return (
-    <div className="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-lg">
+    <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-5 shadow-lg">
       <div className="flex justify-between items-start">
         <div>
           <p className="text-gray-400 text-sm font-medium mb-1">{title}</p>
