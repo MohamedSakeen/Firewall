@@ -26,6 +26,9 @@ def create_app():
     from api.routes.incidents import incidents_bp
     from api.routes.learning import learning_bp
     from api.routes.simulation import simulation_bp
+    from api.routes.response import response_bp
+    from api.routes.hunting import hunting_bp
+    from api.routes.assets import assets_bp
     from engine.health.self_monitoring import global_self_monitoring
 
     app.register_blueprint(alert_bp)
@@ -37,6 +40,9 @@ def create_app():
     app.register_blueprint(incidents_bp)
     app.register_blueprint(learning_bp)
     app.register_blueprint(simulation_bp)
+    app.register_blueprint(response_bp)
+    app.register_blueprint(hunting_bp)
+    app.register_blueprint(assets_bp)
 
     @app.route("/api/health", methods=["GET"])
     def health_check():

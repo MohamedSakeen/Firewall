@@ -13,6 +13,11 @@ import Settings from './pages/Settings';
 import IncidentsView from './pages/IncidentsView';
 import AttackGraphView from './pages/AttackGraphView';
 import PolicySimulatorView from './pages/PolicySimulatorView';
+import BehaviorDashboard from './pages/BehaviorDashboard';
+import AdaptiveDefense from './pages/AdaptiveDefense';
+import ThreatHunt from './pages/ThreatHunt';
+import AssetInventory from './pages/AssetInventory';
+import ModelHealth from './pages/ModelHealth';
 
 function App() {
   return (
@@ -24,9 +29,14 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/behavior" element={<BehaviorDashboard />} />
+            <Route path="/adaptive-defense" element={<AdaptiveDefense />} />
+            <Route path="/threat-hunt" element={<ThreatHunt />} />
             <Route path="/incidents" element={<IncidentsView />} />
             <Route path="/attack-graph" element={<AttackGraphView />} />
             <Route path="/simulator" element={<PolicySimulatorView />} />
+            <Route path="/assets" element={<AssetInventory />} />
+            <Route path="/models" element={<ModelHealth />} />
             <Route path="/firewall" element={<Firewall />} />
             <Route path="/ids" element={<IDSAlerts />} />
             <Route path="/ips" element={<IPSActions />} />

@@ -15,7 +15,7 @@ class PolicySimulator:
                 "would_block": 0,
                 "known_malicious": 0,
                 "known_legitimate": 0,
-                "false_block_rate": 0.0,
+                "estimated_false_positive_rate": 0.0,
                 "recommendation": "SAFE"
             }
 
@@ -38,14 +38,19 @@ class PolicySimulator:
                     known_legitimate += 1
 
         false_block_rate = round((known_legitimate / max(1, would_block)) * 100, 2)
-        recommendation = "SAFE" if false_block_rate < 2.0 else "UNSAFE"
+        if false_block_rate < 1.0:
+            recommendation = "SAFE"
+        elif false_block_rate < 5.0:
+            recommendation = "CAUTION"
+        else:
+            recommendation = "HIGH_RISK"
 
         return {
             "flows_analyzed": total_flows,
-            "would_block": would_block,
-            "known_malicious": known_malicious,
-            "known_legitimate": known_legitimate,
-            "false_block_rate": false_block_rate,
+            "matched_flows": would_block,
+            "malicious_matches": known_malicious,
+            "legitimate_matches": known_legitimate,
+            "estimated_false_positive_rate": false_block_rate,
             "recommendation": recommendation
         }
 

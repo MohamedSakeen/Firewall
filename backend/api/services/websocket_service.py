@@ -3,7 +3,6 @@ from api.api import socketio
 
 _packet_counter = 0
 
-
 def broadcast_packet(packet_data):
     global _packet_counter
     _packet_counter += 1
@@ -21,10 +20,35 @@ def broadcast_packet(packet_data):
     }
     socketio.emit("packet", flat)
 
-
 def broadcast_alert(alert_data):
     socketio.emit("alert", alert_data)
 
-
 def broadcast_block(ip, reason):
     socketio.emit("block", {"ip": ip, "reason": reason, "timestamp": str(datetime.now())})
+
+def broadcast_learning_observation(data):
+    socketio.emit("learning.observation", data)
+
+def broadcast_learning_rejected(data):
+    socketio.emit("learning.rejected", data)
+
+def broadcast_baseline_updated(data):
+    socketio.emit("baseline.updated", data)
+
+def broadcast_anomaly_detected(data):
+    socketio.emit("anomaly.detected", data)
+
+def broadcast_security_event(data):
+    socketio.emit("security_event.created", data)
+
+def broadcast_incident_updated(data):
+    socketio.emit("incident.updated", data)
+
+def broadcast_response_recommended(data):
+    socketio.emit("response.recommended", data)
+
+def broadcast_response_verified(data):
+    socketio.emit("response.verified", data)
+
+def broadcast_drift_detected(data):
+    socketio.emit("drift.detected", data)

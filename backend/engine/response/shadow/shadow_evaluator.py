@@ -3,7 +3,8 @@ import time
 class ShadowRuleEvaluator:
     """
     Evaluates candidate firewall policies in SHADOW mode (non-blocking observation),
-    tracking match statistics and false-positive hits prior to ACTIVE promotion.
+    tracking match statistics and false-positive hits prior to ACTIVE promotion or REJECTION.
+    Lifecycle states: PROPOSED -> SIMULATED -> SHADOW -> VALIDATED -> ACTIVE / REJECTED
     """
     def __init__(self):
         self.shadow_rules = {}  # rule_id -> rule_dict
@@ -15,9 +16,12 @@ class ShadowRuleEvaluator:
             "target_port": target_port,
             "action": action,
             "mode": "SHADOW",
+            "lifecycle_state": "SHADOW",
             "matches": 0,
             "legitimate_matches": 0,
-            "created_at": time.time()
+            "created_at": time.time(),
+            "updated_at": time.time(),
+            "history": [f"{time.strftime('%Y-%m-%d %H:%M:%S')}: Created in SHADOW mode"]
         }
 
     def evaluate_packet(self, packet, is_legitimate=True):
@@ -32,13 +36,28 @@ class ShadowRuleEvaluator:
                 rule["matches"] += 1
                 if is_legitimate:
                     rule["legitimate_matches"] += 1
+                rule["updated_at"] = time.time()
                 matches.append(rule)
 
         return matches
 
     def promote_to_active(self, rule_id):
         if rule_id in self.shadow_rules:
-            self.shadow_rules[rule_id]["mode"] = "ACTIVE"
+            rule = self.shadow_rules[rule_id]
+            rule["mode"] = "ACTIVE"
+            rule["lifecycle_state"] = "ACTIVE"
+            rule["updated_at"] = time.time()
+            rule["history"].append(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: Promoted to ACTIVE mode")
+            return True
+        return False
+
+    def reject_rule(self, rule_id, reason="High false-positive rate"):
+        if rule_id in self.shadow_rules:
+            rule = self.shadow_rules[rule_id]
+            rule["mode"] = "REJECTED"
+            rule["lifecycle_state"] = "REJECTED"
+            rule["updated_at"] = time.time()
+            rule["history"].append(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: Rejected ({reason})")
             return True
         return False
 
