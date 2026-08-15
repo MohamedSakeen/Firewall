@@ -18,6 +18,7 @@ import AdaptiveDefense from './pages/AdaptiveDefense';
 import ThreatHunt from './pages/ThreatHunt';
 import AssetInventory from './pages/AssetInventory';
 import ModelHealth from './pages/ModelHealth';
+import SecurityEventsView from './pages/SecurityEventsView';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/events" element={<SecurityEventsView />} />
             <Route path="/behavior" element={<BehaviorDashboard />} />
             <Route path="/adaptive-defense" element={<AdaptiveDefense />} />
             <Route path="/threat-hunt" element={<ThreatHunt />} />

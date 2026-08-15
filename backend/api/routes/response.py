@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request
 from engine.response.policy.decision_engine import global_decision_engine
 from engine.response.shadow.shadow_evaluator import global_shadow_evaluator
 from engine.response.verification.response_verifier import global_response_verifier
+from engine.response.counterfactual import global_counterfactual_engine
+from engine.deception.honeypot_manager import global_deception_manager
 
 response_bp = Blueprint("response", __name__, url_prefix="/api/responses")
 
@@ -26,11 +28,30 @@ def get_recommendations():
         "reason": reason
     })
 
+@response_bp.route("/counterfactual", methods=["POST"])
+def counterfactual_analysis():
+    data = request.get_json() or {}
+    incident = {
+        "incident_id": data.get("incident_id", "INC-1001"),
+        "attacker_ip": data.get("attacker_ip", "192.168.1.105")
+    }
+    comparison = global_counterfactual_engine.compare_defense_options(incident)
+    return jsonify(comparison)
+
+@response_bp.route("/deception", methods=["GET"])
+def get_deception_decoys():
+    decoys = global_deception_manager.list_decoys()
+    events = global_deception_manager.deception_events
+    return jsonify({
+        "decoys": decoys,
+        "events": events
+    })
+
 @response_bp.route("/shadow", methods=["GET", "POST"])
 def shadow_rules():
     if request.method == "POST":
         data = request.get_json() or {}
-        rule_id = data.get("rule_id", f"SHADOW-{int(request.date.timestamp()) if hasattr(request, 'date') else 101}")
+        rule_id = data.get("rule_id", "SHADOW-101")
         target_ip = data.get("target_ip", "192.168.1.100")
         target_port = data.get("target_port")
         action = data.get("action", "BLOCK")
@@ -40,7 +61,6 @@ def shadow_rules():
     
     rules = list(global_shadow_evaluator.shadow_rules.values())
     if not rules:
-        # Provide default mock shadow rule for SOC demo
         rules = [
             {
                 "rule_id": "SHADOW-101",

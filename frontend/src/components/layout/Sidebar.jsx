@@ -5,6 +5,7 @@ import { LayoutDashboard, Shield, ShieldAlert, ShieldBan, Activity, Network, Fil
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/events', label: 'Security Events', icon: ShieldAlert },
   { path: '/behavior', label: 'Self-Learning Baselines', icon: Activity },
   { path: '/adaptive-defense', label: 'Adaptive Defense', icon: ShieldCheck },
   { path: '/threat-hunt', label: 'Threat Hunting', icon: Search },
