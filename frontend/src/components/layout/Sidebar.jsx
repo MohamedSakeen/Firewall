@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Shield, ShieldAlert, ShieldBan, Activity, Network, FileJson, ScrollText, Settings, User, ChevronLeft, ChevronRight, Layers, Cpu } from 'lucide-react';
+import { LayoutDashboard, Shield, ShieldAlert, ShieldBan, Activity, Network, FileJson, ScrollText, Settings, User, ChevronLeft, ChevronRight, Layers, Cpu, Search, Server, ShieldCheck, Zap } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/behavior', label: 'Self-Learning Baselines', icon: Activity },
+  { path: '/adaptive-defense', label: 'Adaptive Defense', icon: ShieldCheck },
+  { path: '/threat-hunt', label: 'Threat Hunting', icon: Search },
   { path: '/incidents', label: 'Incidents', icon: Layers },
   { path: '/attack-graph', label: 'Attack Graph', icon: Network },
   { path: '/simulator', label: 'Policy Simulator', icon: Cpu },
+  { path: '/assets', label: 'Asset Inventory', icon: Server },
+  { path: '/models', label: 'Model Health', icon: Zap },
   { path: '/firewall', label: 'Firewall Rules', icon: Shield },
   { path: '/ids', label: 'IDS Alerts', icon: ShieldAlert },
   { path: '/ips', label: 'IPS Actions', icon: ShieldBan },
