@@ -22,7 +22,7 @@ export default function Sidebar() {
     <motion.div 
       initial={false}
       animate={{ width: isCollapsed ? 80 : 256 }}
-      className="bg-[#111827] border-r border-gray-800 flex flex-col h-screen shrink-0 relative"
+      className="bg-[#0a0a0a] border-r border-gray-800 flex flex-col h-screen shrink-0 relative"
     >
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -47,7 +47,7 @@ export default function Sidebar() {
         </AnimatePresence>
       </div>
       
-      <div className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 py-4 overflow-hidden">
         <nav className="space-y-1 px-3">
           {navItems.map((item) => {
             const Icon = item.icon;

@@ -1,545 +1,422 @@
-# Executive Summary
+# Smart Self-Learning Firewall: Comprehensive Project Plan
 
-Building a professional Cybersecurity SOC dashboard involves setting up a modern React + Tailwind CSS project, then incrementally adding UI components (sidebar, navbar, cards, tables, alerts, charts, etc.) and wiring them to mock data before connecting to real APIs. We will follow a **phased plan** (see *Timeline*) and provide exact setup commands, file structures, and reusable code snippets for each component. We assume you have Node.js and npm installed. The stack includes **Vite** (for fast React dev) and **Tailwind CSS** (for utility-first styling)【1†L290-L298】. We’ll use **Lucide** icons【8†L125-L133】, **Framer Motion** for animations【11†L55-L61】, and **Recharts** or **react-chartjs-2** for charts. Each phase has clear goals, tasks, deliverables and estimated effort. We’ll start with an MVP (layout, sidebar, navbar, stats cards, traffic table with mock JSON) and then add more features (alerts, charts, API integration, live updates). The result will be a dark-mode, responsive SOC dashboard suitable for a resume portfolio.
+**Executive Summary:** We propose building a next-generation **Adaptive Cyber Defense Platform** – an intelligent firewall/IDS/IPS/SOC system that *learns* from traffic, correlates events into attack stories, and autonomously responds.  Unlike static firewall or IDS projects, this system will integrate machine learning (supervised, unsupervised, reinforcement learning), rule/graph-based analysis, and deception to detect known and novel threats. Key innovations include an **Explainable Threat Score**, **Attack Story/Graph Engine**, **What-If Policy Simulator**, and a **Secure SOC UI**.  By continuously updating baselines of “normal” behavior and using predictive analytics, the platform can anticipate attacker next steps and take proactive measures.  We will benchmark against standard datasets (e.g. NSL-KDD, CIC-IDS) and open-source firewalls, demonstrating higher detection rates, lower false positives and faster response (e.g. recent research shows ML-adaptive firewalls can cut false positives by ~40%).  The phased roadmap covers foundational data pipelines, core detection/response engines, then autonomous defense and monitoring layers.  Success will be measured by metrics like detection accuracy, false-alarm rate, rule update latency, and incident resolution time.  We will differentiate by packaging these capabilities into a cohesive “digital twin” of the network – a unified view where analysts can simulate changes (“what-if block this IP”) and replay attacks against new rules – a feature not found in existing open-source projects.  
 
-## Project Timeline (Phases & Hours)
+---
+
+## Project Goals & Scope
+
+- **Objective:** Build an **end-to-end adaptive firewall/IDS platform** that not only detects intrusions but *understands and predicts* multi-stage attacks and autonomously enforces policy. It should learn from real traffic, correlate events into coherent incidents, and suggest or enact countermeasures.
+- **Scope:** Enterprise networks with mixed traffic (LAN/WAN, server, user hosts, IoT). No vendor lock-in: modular, containerized services. The system will handle packets/flows (L2–L7) and integrate with threat intel (blocklists, known signatures).
+- **Key Deliverables:** 
+  - An extendable **Packet Analysis Pipeline** (collection, normalization, feature extraction).  
+  - **Detection engines:** signature-based IDS, anomaly/ML engine, behavior baselining.  
+  - **Correlation engine:** attack-graph builder linking alerts into “attack stories”.  
+  - **Autonomous response module:** policy engine driving firewall/IPS rules automatically (with safety controls).  
+  - **Threat-scoring UI:** real-time dashboard showing incidents, attack graphs, risk scores.  
+  - **Simulation tools:** policy simulator and attack replay for testing “what-if” scenarios.  
+  - **Deception layer:** integrated honeypots and decoys to trap attackers and boost detection confidence.  
+- **Unique Edge:** Unlike static firewalls (e.g. iptables, pfSense) or IDS like Suricata/Snort, our system will continuously *learn and adapt*. It will combine AI with graph analysis to provide an explainable, predictive security layer – a true **cyber defense digital twin** of the network.
+
+## Threat Model & Success Metrics
+
+- **Threat Model:**  
+  - Adversaries range from external attackers (scanning, botnets, DDoS, malware) to insiders (privilege escalation). Attacks include reconnaissance, service enumeration, credential theft/brute-force, exploitation, lateral movement, data exfiltration.  
+  - The network contains mixed OS (Linux/Windows servers, workstations, possibly IoT/SCADA). We assume adversaries can probe open ports, send malformed packets, and attempt known exploits. The system must focus on network-based detection (though it may consume host logs if integrated).  
+  - We rely on strong baselines and multi-signal correlation to catch “zero-day” or novel tactics. Threat intelligence feeds (e.g. malicious IP lists) are used, but system must operate even without up-to-date signatures.
+- **Success Metrics:**  
+  - **Detection Rate:** True positive rate for known malicious traffic (target >95%).  
+  - **False Positive Rate:** Keep false alarms low (target <5%) – as [29] showed, adaptive RL-based firewalls cut FPs by ~40%.  
+  - **Mean Time to Detection/Response:** Time from attack start to alert/action (aim < seconds).  
+  - **Rule Update Latency:** How quickly the system can generate and enforce new rules (target < 100ms after detection).  
+  - **System Overhead:** Throughput impact (packets/sec, CPU usage). Aim for <10% overhead under load.  
+  - **Usability:** Analyst task reduction (e.g. <10% of alerts requiring human intervention).  
+  - **Coverage:** Percentage of MITRE ATT&CK tactics monitored. We aim to cover all phases from Reconnaissance to Exfiltration.  
+
+These will be measured via simulated attacks (using benchmarks/pen tests) and by replaying recorded traffic. We will use standard evaluation datasets (see below) and also synthetic red-team scenarios.
+
+## Architecture Overview
+
+The platform will be **modular and layered**, with a data flow roughly as follows:
 
 ```mermaid
-timeline
-    title Project Phases & Timeline
-    2026-05-17 : Phase 1 – Setup & Layout (4h)
-    2026-05-18 : Phase 2 – Stats Cards & Traffic Table (6h)
-    2026-05-19 : Phase 3 – Alerts Panel & Charts (8h)
-    2026-05-20 : Phase 4 – API/WebSocket Integration (6h)
-    2026-05-21 : Phase 5 – Testing & Polish (4h)
-```
-
-| Phase   | Goals                                        | Est. Time |
-|--------|----------------------------------------------|----------|
-| **1**   | Setup Vite+Tailwind, create project, layout  | 4h       |
-| **2**   | Implement responsive Sidebar, Navbar, Stats Cards, Traffic Table (mock data) | 6h |
-| **3**   | Build Alerts Panel, Blocked IPs table, Charts with mock data | 8h |
-| **4**   | Connect to (mock) Flask APIs or WebSocket, replace mock data | 6h |
-| **5**   | Testing, responsive tweaks, documentation    | 4h       |
-
-**Dependencies:** Node.js (>=16) and npm must be installed to use Vite【1†L290-L298】. We’ll install React, Tailwind, Lucide, Framer Motion, Axios, Recharts, etc. The **component responsibilities** are:
-
-| Component         | Responsibility                                |
-|-------------------|-----------------------------------------------|
-| **Sidebar.jsx**   | Navigation menu (Dashboard, Traffic, IDS, IPS, Analytics, etc.) |
-| **Navbar.jsx**    | Top bar with title, search, notifications, profile |
-| **StatsCard.jsx** | Display key metrics (packets, threats, blocks, connections) |
-| **TrafficTable.jsx** | Live traffic logs table with IPs, ports, actions |
-| **AlertsPanel.jsx** | Show recent IDS/IPS alerts (type, IP, time) |
-| **BlockedIPs.jsx** | Table of blocked IPs and reasons |
-| **TrafficChart.jsx** | Traffic-over-time (Line Chart) |
-| **ProtocolChart.jsx** | Protocol distribution (Pie/Bar Chart) |
-
-The **folder structure** will look like:
-
-```
-frontend/
-├── src/
-│   ├── assets/          
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── Navbar.jsx
-│   │   ├── dashboard/
-│   │   │   ├── StatsCard.jsx
-│   │   │   ├── TrafficTable.jsx
-│   │   │   ├── AlertsPanel.jsx
-│   │   │   ├── BlockedIPs.jsx
-│   │   ├── charts/
-│   │   │   ├── TrafficChart.jsx
-│   │   │   └── ProtocolChart.jsx
-│   ├── pages/
-│   │   └── Dashboard.jsx
-│   ├── services/
-│   │   └── api.js
-│   ├── data/
-│   │   └── mockData.js
-│   ├── App.jsx
-│   └── main.jsx
-├── tailwind.config.js
-├── postcss.config.js
-└── package.json
-```
-
-This structure keeps components modular and organized for growth.
-
-【35†embed_image】 *Example visualization of a modern SOC dashboard (dark theme with charts and alerts).*
-
-## Phase 1 — Setup & Layout
-
-**Goals:** Initialize the React/Vite project, configure Tailwind CSS, and build the basic app layout (Sidebar + Navbar) with placeholder content. This establishes the app scaffold【1†L290-L298】.
-
-- **Deliverables:** A Vite-React project with Tailwind, a responsive sidebar and top navbar, and a placeholder Dashboard page.
-- **Steps:**
-
-  1. **Create Vite React Project:**  
-     ```bash
-     npm create vite@latest frontend -- --template react
-     cd frontend
-     npm install
-     ```  
-     This scaffolds a React app using Vite【1†L290-L298】.
-
-  2. **Install Tailwind CSS:**  
-     ```bash
-     npm install -D tailwindcss@4 postcss autoprefixer
-     npx tailwindcss init -p
-     ```  
-     (Use `@3` if v4 not released; adjust commands accordingly.) This also creates **`tailwind.config.js`** and **`postcss.config.js`**【1†L293-L302】.
-
-  3. **Configure Tailwind:**  
-     In **`tailwind.config.js`**, enable Tailwind on our JSX files and set dark mode:
-     ```js
-     // tailwind.config.js
-     export default {
-       content: [
-         "./index.html",
-         "./src/**/*.{js,jsx,ts,tsx}",
-       ],
-       darkMode: 'class', // enable manual 'dark' class
-       theme: {
-         extend: {},
-       },
-       plugins: [],
-     };
-     ```  
-     This follows the official Tailwind guide【1†L307-L314】.  
-
-  4. **Add Tailwind Directives:**  
-     Create **`src/index.css`** and add Tailwind’s layers:
-     ```css
-     @tailwind base;
-     @tailwind components;
-     @tailwind utilities;
-     ```
-     Import **`index.css`** in **`main.jsx`** (generated by Vite) or **`App.jsx`** to apply styles.
-
-  5. **Set Up Layout Components:** Create **`Sidebar.jsx`** and **`Navbar.jsx`** under **`src/components/layout/`**. Example code for **`App.jsx`**:
-     ```jsx
-     // src/App.jsx
-     import Sidebar from './components/layout/Sidebar';
-     import Navbar from './components/layout/Navbar';
-
-     function App() {
-       return (
-         <div className="min-h-screen bg-gray-900 text-gray-100">
-           <Sidebar />
-           <main className="flex-1 flex flex-col">
-             <Navbar />
-             <div className="p-4">
-               {/* Dashboard page content will go here */}
-               <h1 className="text-3xl font-bold">Dashboard</h1>
-               <p className="mt-4">Welcome to your SOC dashboard.</p>
-             </div>
-           </main>
-         </div>
-       );
-     }
-     export default App;
-     ```
-     - **`Sidebar.jsx`**: Use Tailwind classes (`bg-gray-800`, `hover:bg-gray-700`, etc.) to style a vertical menu (links for Dashboard, Traffic, IDS Alerts, etc.).  
-     - **`Navbar.jsx`**: Create a top bar with the title (e.g. “SentinelX Firewall”), a search box, and placeholders for notifications/profile. Use `flex` utilities for layout.  
-
-     This establishes a responsive two-column layout with sidebar (fixed width) and main content【26†L298-L304】.
-
-- **Check:** Run `npm run dev`. You should see a blank dashboard page with your layout. No errors should appear. If you see unstyled content, verify **`index.css`** import and Tailwind setup.
-- **Estimated Time:** 4h
-
-【41†embed_image】 *Sample dark sidebar design. Use similar classes (e.g. `bg-gray-800`, `hover:bg-gray-700`) for your Sidebar component.*
-
-## Phase 2 — Stats Cards & Traffic Table (MVP Data)
-
-**Goals:** Add **Stats Cards** at top of dashboard and a **Live Traffic Table** below, using mock JSON data. This makes the UI feel dynamic even before connecting APIs. Focus on responsive grid layouts and Tailwind styling.
-
-- **Deliverables:** Four stats cards (Packets, Threats, Blocked, Connections) with icons, and a traffic logs table with colored status badges.
-- **Steps:**
-
-  1. **Mock Data:** Create **`src/data/mockData.js`** exporting sample data. For example:
-     ```js
-     // src/data/mockData.js
-     export const stats = [
-       { id: 1, title: "Total Packets", value: 10234, icon: "Layers", trend: "+12%" },
-       { id: 2, title: "Threats Detected", value: 23, icon: "AlertOctagon", trend: "+5%" },
-       { id: 3, title: "Blocked IPs", value: 17, icon: "Lock", trend: "-2%" },
-       { id: 4, title: "Active Conns", value: 120, icon: "Network", trend: "+8%" },
-     ];
-     export const trafficLogs = [
-       // sample rows
-       { time: "10:05:21", src: "192.168.1.5", dest: "10.0.0.7", protocol: "TCP", port: 443, action: "ALLOW" },
-       { time: "10:06:05", src: "10.0.0.7", dest: "10.0.0.10", protocol: "UDP", port: 53, action: "BLOCK" },
-       // ... more entries
-     ];
-     ```
-     This data drives the UI components. We will later replace these with API calls.
-
-  2. **StatsCard Component:** In **`src/components/dashboard/StatsCard.jsx`**, use props for title, value, icon, etc. Use **Lucide** icons (install with `npm install lucide-react`)【8†L125-L133】. Example:
-     ```jsx
-     // src/components/dashboard/StatsCard.jsx
-     import { ArrowUp, ArrowDown } from 'lucide-react';
-
-     export default function StatsCard({ title, value, icon: Icon, trend }) {
-       return (
-         <div className="bg-gray-800 p-4 rounded-lg flex items-center hover:shadow-lg transition">
-           <div className="p-3 bg-gray-700 rounded-full">
-             <Icon className="h-6 w-6 text-cyan-400" />
-           </div>
-           <div className="ml-4">
-             <p className="text-sm text-gray-400">{title}</p>
-             <p className="text-2xl font-semibold">{value}</p>
-             <div className="flex items-center mt-1">
-               {trend.startsWith('+') ? (
-                 <ArrowUp className="h-4 w-4 text-green-400" />
-               ) : (
-                 <ArrowDown className="h-4 w-4 text-red-400" />
-               )}
-               <span className="text-xs ml-1 text-gray-400">{trend}</span>
-             </div>
-           </div>
-         </div>
-       );
-     }
-     ```
-     In **`Dashboard.jsx`**, import `stats` from mockData and render:
-     ```jsx
-     import { stats } from '../data/mockData';
-     import StatsCard from '../components/dashboard/StatsCard';
-
-     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-       {stats.map(card => (
-         <StatsCard 
-           key={card.id}
-           title={card.title}
-           value={card.value}
-           icon={require(`lucide-react`).unpkg.defaultIcons[card.icon]} // or direct import
-           trend={card.trend}
-         />
-       ))}
-     </div>
-     ```
-     This creates a responsive grid of cards. On hover, we use a glow or shadow for effect (see **`hover:shadow-lg`** above).
-
-  3. **TrafficTable Component:** Create **`src/components/dashboard/TrafficTable.jsx`**. Use a `<table>` with Tailwind classes (`table-auto`, `min-w-full`, `text-sm`, etc.). Example snippet:
-     ```jsx
-     // src/components/dashboard/TrafficTable.jsx
-     export default function TrafficTable({ data }) {
-       return (
-         <table className="min-w-full divide-y divide-gray-700">
-           <thead>
-             <tr className="bg-gray-800">
-               {["Time", "Source IP", "Dest IP", "Protocol", "Port", "Action"].map(col => (
-                 <th key={col} className="px-3 py-2 text-left text-xs font-medium text-gray-400 uppercase">{col}</th>
-               ))}
-             </tr>
-           </thead>
-           <tbody className="divide-y divide-gray-700">
-             {data.map((row, i) => (
-               <tr key={i} className="hover:bg-gray-700">
-                 <td className="px-3 py-2 font-mono text-xs">{row.time}</td>
-                 <td className="px-3 py-2 font-mono">{row.src}</td>
-                 <td className="px-3 py-2 font-mono">{row.dest}</td>
-                 <td className="px-3 py-2">{row.protocol}</td>
-                 <td className="px-3 py-2">{row.port}</td>
-                 <td className={`px-3 py-2 font-semibold ${
-                   row.action === 'ALLOW' ? 'text-green-400' :
-                   row.action === 'BLOCK' ? 'text-red-500' : 'text-yellow-500'
-                 }`}>{row.action}</td>
-               </tr>
-             ))}
-           </tbody>
-         </table>
-       );
-     }
-     ```
-     Then render in **`Dashboard.jsx`**:
-     ```jsx
-     import { trafficLogs } from '../data/mockData';
-     import TrafficTable from '../components/dashboard/TrafficTable';
-
-     <div className="bg-gray-800 p-4 rounded-lg">
-       <h2 className="text-lg font-semibold mb-2">Live Traffic</h2>
-       <TrafficTable data={trafficLogs} />
-     </div>
-     ```
-     Color-code the “Action” cell: green for ALLOW, red for BLOCK, yellow for ALERT (using Tailwind text colors as above).
-
-- **Check:** The dashboard should now show four stats cards and a scrollable traffic table. Verify layout on various screen sizes (use devtools to simulate phone). Ensure Tailwind dark-mode classes work if you add a `dark` class (e.g. on `<html class="dark">`).
-
-- **Estimated Time:** 6h
-
-【52†embed_image】 *An example dark analytics dashboard layout. Notice the KPI cards at top and charts below. (Use Chart.js/Recharts for similar charts later.)*  
-
-## Phase 3 — Alerts Panel & Charts
-
-**Goals:** Enhance the UI with an **Alerts Panel**, **Blocked IPs Table**, and basic **Charts**. Use the mock data or simple arrays. This demonstrates data visualization and makes the dashboard interactive.
-
-- **Deliverables:**  
-  - **AlertsPanel:** A list of recent IDS alerts (port scan, SYN flood, etc.).  
-  - **BlockedIPs:** A table of blocked IPs with reasons and timestamps.  
-  - **Charts:** Three charts – Traffic Over Time (line), Protocol Distribution (pie), Threat Types (bar).  
-
-- **Steps:**
-
-  1. **Mock Alerts & Blocked Data:** Extend **`mockData.js`**:
-     ```js
-     export const alerts = [
-       { id: 1, type: "Port Scan", src: "10.0.0.5", severity: "Medium", time: "10:15:30" },
-       { id: 2, type: "SYN Flood", src: "10.0.0.12", severity: "High", time: "10:17:45" },
-       // ...
-     ];
-     export const blockedIPs = [
-       { ip: "10.0.0.5", reason: "Port Scan", time: "10:15:35" },
-       { ip: "10.0.0.8", reason: "Malware", time: "10:18:10" },
-       // ...
-     ];
-     ```
+flowchart LR
+  %% Data Ingestion Layer
+  NIC["Network Interface"] --> PacketCollector["Packet Collection (eBPF/Dumpcap)"]
+  PacketCollector --> Normalizer["Packet Normalization & Flow Builder"]
   
-  2. **AlertsPanel Component:** In **`src/components/dashboard/AlertsPanel.jsx`**, iterate over alerts and style each with a colored badge. Example:
-     ```jsx
-     // src/components/dashboard/AlertsPanel.jsx
-     export default function AlertsPanel({ alerts }) {
-       return (
-         <div className="bg-gray-800 p-4 rounded-lg">
-           <h2 className="text-lg font-semibold mb-2">Threat Alerts</h2>
-           <ul>
-             {alerts.map(alert => (
-               <li key={alert.id} className="flex items-center mb-3">
-                 <div className="flex-1">
-                   <p>
-                     <span className="font-semibold text-red-500">{alert.type}</span> 
-                     from <span className="font-mono">{alert.src}</span>
-                   </p>
-                   <p className="text-xs text-gray-400">{alert.time}</p>
-                 </div>
-                 <span className={`ml-4 px-2 text-xs rounded ${
-                   alert.severity === 'High' ? 'bg-red-600' :
-                   alert.severity === 'Medium' ? 'bg-yellow-600' : 'bg-green-600'
-                 }`}>
-                   {alert.severity}
-                 </span>
-               </li>
-             ))}
-           </ul>
-         </div>
-       );
-     }
-     ```
-     Render it in **`Dashboard.jsx`**:
-     ```jsx
-     import { alerts } from '../data/mockData';
-     import AlertsPanel from '../components/dashboard/AlertsPanel';
-     import BlockedIPs from '../components/dashboard/BlockedIPs';
-
-     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-       <AlertsPanel alerts={alerts} />
-       <BlockedIPs data={blockedIPs} />
-     </div>
-     ```
+  %% Detection Engines
+  Normalizer --> Firewall["Stateful Firewall (Baseline Rules)"]
+  Normalizer --> IDS["Signature/Heuristic IDS (Snort/Suricata)"]
+  Normalizer --> AnomalyEngine["Behavioral/ML Engine (Anomaly Detection)"]
   
-  3. **BlockedIPs Component:** In **`src/components/dashboard/BlockedIPs.jsx`**, display a table similar to TrafficTable:
-     ```jsx
-     // src/components/dashboard/BlockedIPs.jsx
-     export default function BlockedIPs({ data }) {
-       return (
-         <div className="bg-gray-800 p-4 rounded-lg">
-           <h2 className="text-lg font-semibold mb-2">Blocked IPs</h2>
-           <table className="min-w-full divide-y divide-gray-700">
-             <thead>
-               <tr className="bg-gray-800">
-                 {["IP Address", "Reason", "Blocked At"].map(col => (
-                   <th key={col} className="px-3 py-2 text-left text-xs font-medium text-gray-400">{col}</th>
-                 ))}
-               </tr>
-             </thead>
-             <tbody className="divide-y divide-gray-700">
-               {data.map((row, i) => (
-                 <tr key={i}>
-                   <td className="px-3 py-2 font-mono text-sm">{row.ip}</td>
-                   <td className="px-3 py-2 text-sm">{row.reason}</td>
-                   <td className="px-3 py-2 text-xs text-gray-400">{row.time}</td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-         </div>
-       );
-     }
-     ```
+  %% Correlation & Scoring
+  Firewall --> Correlator["Correlation & Threat Scoring Engine"]
+  IDS --> Correlator
+  AnomalyEngine --> Correlator
+  
+  %% Threat Intelligence Integration
+  Correlator --> ThreatIntelDB["Threat Intelligence DB (Indicators, Scores)"]
+  
+  %% Attack Graph & SOAR
+  Correlator --> AttackGraph["Attack Graph / Story Engine"]
+  AttackGraph --> ResponseEngine["IPS/SOAR Policy Engine"]
+  AttackGraph --> DeceptionManager["Deception/Honeypot Manager"]
+  
+  %% Response Actions
+  ResponseEngine --> Enforcement["Quarantine / Rate-limit / Block Actions"]
+  DeceptionManager --> Enforcement
+  
+  %% Forensics & UI
+  Correlator --> ForensicsDB["Forensics / Incident DB"]
+  ForensicsDB --> WebUI["SOC Dashboard & Alerting"]
+```
 
-  4. **Charts Setup:** Install **Recharts** (or **react-chartjs-2**). For example: `npm install recharts`【51†L49-L52】. Create components:
-     - **TrafficChart.jsx:** Use `<LineChart>` from Recharts. Example skeleton:
-       ```jsx
-       // src/components/charts/TrafficChart.jsx
-       import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-       import { trafficChartData } from '../data/mockData'; // define in mockData
+- **Data Ingestion:**  High-speed packet capture (e.g. using libpcap/eBPF or network TAP) feeds a normalizer that reassembles flows and extracts features (packet sizes, flags, timing, protocol metadata).  
+- **Firewall (Baseline):**  A traditional stateful firewall enforcing user-defined policies (allow/block lists, port rules). This runs first to drop obviously disallowed traffic.  
+- **IDS Engine:**  A signature-based or heuristic IDS (e.g. Suricata, Snort) that flags known bad patterns (malware, exploits, C2 beaconing).  
+- **Behavioral/AI Engine:**  A statistical/anomaly detection module that monitors flow-level and packet-level features for deviations from learned baselines. For example, it tracks connection rates per host/service, byte patterns, DNS/HTTP anomalies, etc. Trained ML models (e.g. autoencoders, One-Class SVM) flag unusual behavior without prior signatures.  
+- **Correlation & Threat Scoring:**  All alerts/events feed a correlation engine that aggregates by source IP / asset. It updates a dynamic *threat score* per entity (0–100) based on factors (port scan, repeated login failures, unusual payloads). Each contributing factor and its weight will be recorded (see *Explainable Scoring*).  
+- **Threat Intelligence DB:**  A database of enrichments (e.g. IP reputation, known malicious domains, MITRE ATT&CK mapping) used to adjust scoring and tagging of events.  
+- **Attack Graph/Story Engine:**  A graph database or graph algorithm correlates sequential events into an *attack graph*, linking an attacker’s actions in chronological order (Reconnaissance → Exploitation → Lateral Movement → Exfiltration). This engine can match sequences to known tactics (e.g. MITRE phases). It also predicts likely next steps with probabilistic weights (see “Prediction Engine” below).  
+- **IPS/SOAR Response Engine:**  Based on the attacker’s threat score and attack graph stage, an automated policy layer can enforce countermeasures. This includes dynamic rule generation (via Firewall API), session termination, or coordinated blocks. Human review can be required for high-impact actions, but low-score threats may be auto-blocked. All automated actions are logged with justification (for audit).  
+- **Deception/Honeypot Manager:**  A subsystem controlling decoys (fake SSH/HTTP/Ftp services, canary credentials). If an IP hits a honeypot, it gets tagged with high confidence as malicious, instantly boosting its threat score. Honeypot interactions also feed the Attack Graph.  
+- **Forensics/Incident DB:**  Every incident (attack graph) is logged with full metadata (packets, timelines, graph of steps). This DB supports “replay lab” functionality and audit reporting.  
+- **SOC Dashboard:**  A web UI (React) showing real-time stats (threat count, incidents, quarantined IPs), a live network topology/attack-graph view, incident timelines, and drill-downs. It supports search queries (like a mini SIEM) and shows explainable threat score breakdowns.  
 
-       export default function TrafficChart() {
-         return (
-           <div className="bg-gray-800 p-4 rounded-lg">
-             <h2 className="text-lg font-semibold mb-2">Traffic Over Time</h2>
-             <ResponsiveContainer width="100%" height={200}>
-               <LineChart data={trafficChartData}>
-                 <XAxis dataKey="time" stroke="#ccc" />
-                 <YAxis stroke="#ccc" />
-                 <Tooltip wrapperStyle={{ color: '#000' }} />
-                 <Line type="monotone" dataKey="value" stroke="#00e5ff" strokeWidth={2}/>
-               </LineChart>
-             </ResponsiveContainer>
-           </div>
-         );
-       }
-       ```
-     - **ProtocolChart.jsx:** Use `<PieChart>` to show distribution of TCP/UDP/ICMP. Example skeleton:
-       ```jsx
-       // src/components/charts/ProtocolChart.jsx
-       import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-       import { protocolData } from '../data/mockData';
+This architecture leverages a microservices or container-based design to allow horizontal scaling (e.g. Kafka for event streaming, Kubernetes deployment). The mermaid flowchart above illustrates the data flow between components.
 
-       export default function ProtocolChart() {
-         const COLORS = ['#00e5ff', '#ffb703', '#ff3b3b'];
-         return (
-           <div className="bg-gray-800 p-4 rounded-lg">
-             <h2 className="text-lg font-semibold mb-2">Protocol Distribution</h2>
-             <ResponsiveContainer width="100%" height={200}>
-               <PieChart>
-                 <Pie data={protocolData} dataKey="value" nameKey="protocol" outerRadius={80} fill="#82ca9d" label>
-                   {protocolData.map((entry, index) => (
-                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                   ))}
-                 </Pie>
-                 <Tooltip wrapperStyle={{ backgroundColor: '#333', borderColor: '#444' }}/>
-               </PieChart>
-             </ResponsiveContainer>
-           </div>
-         );
-       }
-       ```
-     - (You may similarly create a **ThreatChart.jsx** with `<BarChart>` for threat types.)
-     - Provide mock arrays (`trafficChartData`, `protocolData`, etc.) in `mockData.js`.
+## Data Sources & Datasets
 
-     Finally, render charts in **`Dashboard.jsx`** inside a responsive grid:
-     ```jsx
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-       <TrafficChart />
-       <ProtocolChart />
-       {/* Add ThreatChart if created */}
-     </div>
-     ```
+The system will ingest multiple data sources:
+- **Network Traffic:** Packet capture/NetFlow records from switches/routers/hosts. Includes TCP/UDP/ICMP, DNS queries, HTTP logs, etc.  
+- **System Logs:** Optionally, logs from servers (SSH logs, Windows Event logs, application logs) if available, to correlate host anomalies.  
+- **Threat Intelligence Feeds:** External feeds (IP blacklists, malware hashes, CVEs) integrated into the ThreatIntelDB.
+- **Honeypot Logs:** Captures of interaction with fake services we deploy.
 
-- **Check:** The dashboard now has alert cards (with severity badges), a blocked IP table, and two charts. Verify the charts render (they should match Recharts examples). If charts are empty, double-check the data arrays and Recharts imports.
+For development and testing, we will use public datasets (Table 1):
 
-- **Estimated Time:** 8h
+| Dataset       | Description & Year                 | Domain        | Notable Characteristics                         | Source/Citation                                     |
+|--------------|------------------------------------|---------------|-------------------------------------------------|-----------------------------------------------------|
+| **NSL-KDD**  | Intrusion detection dataset (1999) | Simulated net | Classic benchmark with labeled attacks (DoS, R2L, U2R, Probe). Addresses KDD-99 issues. | Used in [29†L383-L390] and widely known             |
+| **CIC-IDS2017** | Modern intrusion dataset (2017)  | Simulated net | Benign + 14 attack scenarios (BruteForce, DDoS, Botnet, etc.), flows & PCAP.    | Used in [29†L383-L390]; Canadian Institute for Cybersecurity |
+| **UNSW-NB15** | Modern network traffic (2015)     | Simulated net | Contains nine families of attacks, includes contemporary features.             | Widely used in NIDS research                         |
+| **CTU-13**   | Botnet traffic (2011)            | Real net     | 13 scenarios of real botnet captures mixed with normal traffic.               | Stratosphere Lab (CTU) dataset        |
+| **IoT-23**   | IoT device traffic (2020)       | IoT network  | Labeled malware/benign traffic from infected IoT devices.                      | Stratosphere Lab                                        |
+| **CTU-SME-11**| SME enterprise net (2017)       | Simulated net | Mix of malware and normal traffic emulating a small enterprise network.        | Stratosphere Lab                                        |
+| **CIC-DDoS2019** | DDoS attacks (2019)          | Simulated net | Multi-class DDoS scenarios with benign background.                             | Canadian Institute for Cybersecurity                     |
+| **Kaggle “Internet Firewall”** | Real net traffic (year?) | Real net | Packet data from an internet gateway (enriched with firewall labels).         | [Tunguz, Kaggle][32†L136-L138]                         |
 
-【52†embed_image】 *Charts and stats cards integration. We used Tailwind classes for layout and Recharts for visualization.*  
+Table 1: **Candidate datasets for training/testing**. These cover classic attacks (KDD, UNSW) as well as modern threats and honeypot data. We will preprocess them into uniform formats (NetFlow, session logs). For ML model training, the labeled flows from these datasets help build classifiers. For anomaly detection, we also train on the “benign” periods.  
 
-## Phase 4 — API & WebSocket Integration
+Additionally, we will create synthetic testbeds (e.g. Mininet) to replay specific attack chains (SQLi, RDP brute-force, lateral scripts) for evaluation.
 
-**Goals:** Replace mock data with actual API calls and (optionally) WebSocket updates. We’ll create an **API service stub** and simulate fetching logs/alerts from a backend (Flask). This connects frontend with backend logic.
+## ML/AI Approaches
 
-- **Deliverables:** Axios service for fetching alerts/traffic, WebSocket (or polling) integration for live updates, real data wiring.
-- **Steps:**
+We will employ a mix of supervised, unsupervised, and reinforcement learning techniques:
 
-  1. **API Service:** In **`src/services/api.js`**, use Axios:
-     ```js
-     // src/services/api.js
-     import axios from 'axios';
-     const API_BASE = "http://localhost:5000"; // Flask server URL
+- **Anomaly Detection (Unsupervised ML):** Model “normal” network behavior (per host/service) using techniques like autoencoders, clustering, or One-Class SVM. For example, an autoencoder neural net learns to compress normal traffic flows; high reconstruction error flags anomalies. Isolation Forest or statistical methods can detect outliers in flow features (burst of SYNs, DNS exfil patterns, etc.). These models adapt online with streaming data (using libraries like River) to handle concept drift. Research has shown such self-learning models can achieve “highly accurate anomaly detection… with low incidence of false positives”.
+- **Supervised Classification:** Use historical labeled data (from IDS alerts or human tags) to train classifiers (Random Forests, XGBoost, Neural Nets) for known attack types (e.g. known botnet signature or malware fingerprint). These can run in parallel with anomaly detectors. Features include session duration, byte histograms, n-grams of packet contents, TLS fingerprints, etc.
+- **Graph-based Learning:** Represent traffic/alerts as graphs (nodes=hosts, edges=communications) and apply Graph Neural Networks or community detection to spot suspicious subgraphs (e.g. scanning trees). This is an experimental area (e.g. GNN-IDS). Even if not end-to-end, graph algorithms will underlie our attack graph engine (to group events).
+- **Reinforcement Learning (RL) for Policy Tuning:** Inspired by recent work (e.g. “Deep Q-learning for firewall rules”), we will experiment with a DRL agent that learns to adjust firewall rules based on traffic state. The agent’s state can be flow-level summaries and its actions are rule edits. Rewards combine successful blocking (no malicious flow) with penalty for false positives or performance hits. The arXiv study reported ~3.6% higher accuracy and 40% FP reduction with an LSTM-CNN + DQN setup. We may prototype a simpler RL (e.g. DQN or PPO in a Mininet simulation) to optimize high-level actions (e.g. rate-limit vs block).
+- **Explainable ML:** To make threat scoring transparent, we will use interpretable models or augment complex models with explainability. For example, we may use decision trees or compute SHAP values for our ensemble model, so each IP’s score can be broken down by feature contributions (e.g. “+30 points for port scan, +20 for payload anomaly”). This mirrors [16]’s “Amygdala” auto-block rule concept: each trigger (e.g. fingerprint match, bot detection) can become an actionable rule, but we will additionally display these to the analyst.
+- **Fallback Rule/Graph-based Engine:** Alongside ML, a pattern-based engine will detect common multi-step attacks using hand-crafted rules or graph matching (e.g. if port-scan -> login failures -> known exploit signature, mark as credential attack chain). This serves as a safety net if ML is uncertain. We can encode known sequences from MITRE ATT&CK (e.g. T1078 Credential Access, etc.) so that certain combinations of events immediately raise flags.
 
-     export const fetchAlerts = async () => {
-       const res = await axios.get(`${API_BASE}/alerts`);
-       return res.data; // assume JSON array
-     };
-     export const fetchBlocked = async () => {
-       const res = await axios.get(`${API_BASE}/blocked`);
-       return res.data;
-     };
-     export const fetchTraffic = async () => {
-       const res = await axios.get(`${API_BASE}/traffic`);
-       return res.data;
-     };
-     ```
-     (Your Flask API can serve `/alerts`, `/blocked`, `/traffic` by reading logs or database.)
+**Candidate ML Models (Table 2):** We will evaluate these approaches. Table 2 compares representative algorithms:
 
-  2. **Connecting in Components:** In components like **`Dashboard.jsx`**, use `useEffect` hooks to call these services on load:
-     ```jsx
-     import { fetchAlerts, fetchBlocked, fetchTraffic } from '../services/api';
-     // ...
-     useEffect(() => {
-       fetchAlerts().then(setAlerts);
-       fetchBlocked().then(setBlockedIPs);
-       fetchTraffic().then(setTrafficLogs);
-     }, []);
-     ```
-     Ensure CORS is enabled on Flask (e.g. `flask_cors`) so the frontend (http://localhost:3000) can call the backend.
+| Model              | Category         | Use Case                          | Strengths                            | Notes/Drawbacks              |
+|--------------------|------------------|-----------------------------------|--------------------------------------|------------------------------|
+| Random Forest / XGBoost | Supervised Classifier | Classify known attacks (with labels) | Good accuracy, feature importance  | Requires labeled attacks, static snapshot models |
+| SVM / Logistic Regression | Supervised / Linear | Fast binary detection (e.g. malicious vs benign) | Interpretable (LR), effective for linearly separable data | Struggles with raw high-dim, needs tuning |
+| Autoencoder (NN)   | Anomaly Detection (unsupervised) | Learn normal flow/payload patterns      | Captures complex non-linear baselines | Tendency to reconstruct novel attacks; needs periodic retraining |
+| Isolation Forest   | Anomaly Detection (unsupervised) | Detects outlier flows or hosts         | Simple, no labels needed           | May miss contextual anomalies |
+| LSTM/CNN (Deep)    | Sequence/Time-series Modeling | Detect timed patterns (e.g. burstiness, packet sequences) | Good for time-dependent anomalies | Requires more data/training time |
+| Reinforcement (DQN/PPO) | RL Policy Agent | Adjust firewall rules on the fly        | Learns strategies over time (action sequences) | Complex to train; needs simulation or careful reward design |
+| Graph Neural Net   | Graph Analysis   | Model relations (lateral movement, multi-host attacks) | Can capture connectivity features    | Experimental; data pipeline overhead |
+| Rule-based Expert  | Heuristic        | Fallback detections (e.g. known LLM attacks) | Deterministic, explainable        | Hard to cover unknown patterns without ML |
 
-  3. **WebSocket (Optional):** For real-time updates, you can use **Flask-SocketIO** on backend and **socket.io-client** on React. Example pattern:
-     ```jsx
-     // src/services/socket.js
-     import { io } from "socket.io-client";
-     export const socket = io("http://localhost:5000");
-     ```
-     Then in **`Dashboard.jsx`**:
-     ```jsx
-     useEffect(() => {
-       socket.on('new-traffic', data => {
-         setTrafficLogs(prev => [...data, ...prev]); // prepend new packets
-       });
-       socket.on('new-alert', alert => {
-         setAlerts(prev => [alert, ...prev]);
-       });
-       // Cleanup on unmount:
-       return () => { socket.off('new-traffic'); socket.off('new-alert'); };
-     }, []);
-     ```
-     The backend would emit these events when new logs appear. This provides live updates without manual refresh.
+Table 2: **ML/AI model comparison for various tasks.** We will likely use an ensemble: supervised for signature detection, unsupervised for anomaly, and possibly RL for adaptive policy. Critically, every model’s output feeds our threat scoring; if one model triggers a high score, the system can still respond even if others are uncertain.
 
-  4. **Replace Mock Data:** Remove references to `mockData.js` and feed components with state variables updated by API calls. Ensure components re-render when data arrives.
+## Rule/Graph-Based Correlation
 
-- **Check:** After connecting to your Flask app (run `python api.py`), verify the data flows into the UI. If using polling instead, implement periodic `setInterval` for fetches. Handling CORS and networking is the key here.
+As alerts flood in, raw lists are overwhelming. We will **correlate alerts into coherent attack graphs**.  Each node in the attack graph represents an action or state (e.g. “Port scan on 22/TCP”, “Brute-force SSH login attempt”, “Exploit executed”, “Sensitive file accessed”). Edges represent causal or temporal links (same source IP, follow-on step). For example, a port-scan alert by IP 10.0.0.23, followed by SSH login failures from same IP, suggests a credential attack path. We will map these to MITRE tactics (“Reconnaissance → Credential Access → Exfiltration”). 
 
-- **Estimated Time:** 6h
+A typical attack graph example: 
 
-## Phase 5 — Testing, Polish & Deployment
+```mermaid
+graph TD
+  A[Attacker IP 10.0.0.23] -->|Scan 80, 22| B(Port Scanning Detected)
+  B -->|22/tcp open| C(SSH Brute-Force Attempts)
+  C -->|Login Failed x10| D(Repeated Authentication Failures)
+  D -->|Credential Leak| E(Successful SSH Compromise)
+  E -->|Privilege Escalation| F(Lateral Move: RDP to 10.0.0.45)
+  F -->|Data Exfiltration| G(Data Exfil on 10.0.0.45:445)
+```
 
-**Goals:** Finalize UI, fix responsive issues, write documentation, and prepare for deployment. Create screens for portfolio or demo video.
+*Figure:* Example multi-stage attack graph: an external IP conducts port scanning, finds SSH (22), brute-forces logins, gains shell, moves laterally and exfiltrates data. The UI will display this as a flow (Recon → Access → Lateral → Exfiltration). 
 
-- **Deliverables:** Responsive layout on all devices, smooth animations (Framer Motion), comments/docs, and final deliverable state.
-- **Steps:**
+This graph engine helps: 
+- **Visualizes** the attack path for analysts. 
+- **Prunes** duplicate alerts (e.g. dozens of port scan alerts become one “Port Scanning” node). 
+- **Supports prediction:** given the current node, rank likely next steps (e.g. after brute force, next is privilege escalation with probability X). 
+- We will implement this using a graph database (e.g. Neo4j) or in-memory graph library. It will ingest events and periodically re-evaluate connected components. Attack graphs allow the system to “tell a story” of the attack, not just flat alerts.
 
-  1. **Responsive Check:** Test on mobile widths; adjust grid breakpoints (e.g. make traffic table horizontal scroll, collapse sidebar on small screens with a toggle).
-  2. **Add Animations:** Wrap key components (cards, table rows, alerts) with `<motion.div>` or use `whileHover` effects from **Framer Motion**【11†L98-L106】. For example:
-     ```jsx
-     import { motion } from 'framer-motion';
-     // ...
-     <motion.div 
-       whileHover={{ scale: 1.02 }} 
-       transition={{ type: 'spring', stiffness: 300 }}
-       className="bg-gray-800 p-4 rounded-lg"
-     >
-       {/* content */}
-     </motion.div>
-     ```
-     This adds subtle hover zoom to cards【11†L98-L106】.
-  3. **Dark Mode Toggle (Optional):** Add a button in Navbar to toggle `dark` class on `<html>` (persist in localStorage as in Tailwind docs【26†L325-L332】).
-  4. **Testing:** Ensure data displays correctly, inspect console for errors. Possibly write simple unit tests or React Testing Library tests for components.
-  5. **Deployment:** Build the React app (`npm run build`) and serve with an HTTP server. Update Flask CORS for production domain. Or deploy separately on Netlify/Heroku as needed. Document installation steps in a README.
+*Attack Graphs in research:* They are proven to help security analysts see vulnerable paths. Our unique twist is dynamically building them from live IDS alerts and using them to guide policy (see below).
 
-- **Estimated Time:** 4h
+## Deception / Honeypot Design
 
-## Summary of Built System
+To boost detection confidence, we will deploy a **deception layer** within the network: fake services and credentials to lure attackers. Components may include:
+- **Low-interaction Honeypots:** Fake SSH (on unusual port), Telnet, HTTP servers with dummy admin pages, fake SMB shares. 
+- **High-interaction Honeypots (optional):** Lightweight VMs or containers mimicking real servers with vulnerable apps (e.g. CTF challenges).
+- **Canary credentials:** Unused credentials in network share that, if used, trigger alerts.
+- **Honeycredentials:** Fake API keys or service tokens placed in configs.
+- **Decoy DNS entries:** Domain names that resolve internally to honeypots.
 
-You will end up with:
+When an attacker interacts with a honeypot, we treat it as near-100% malicious (unlike a regular alert). For example, if IP 198.51.100.45 attempts SSH on our fake honeypot, we immediately raise its threat score to critical and propagate a block rule.  The event also flows into the Attack Graph (e.g. “HONEYPOT TRIGGER: SSH on port 2222”). This high-confidence signal can “seed” correlated investigation. 
 
-- A **React + Tailwind** frontend (**Vite**-powered) serving a dark-themed SOC dashboard interface.  
-- **Dynamic components**: Sidebar, Navbar, Stats Cards, Traffic Table, Alerts Panel, Blocked IPs table, and Charts.  
-- **Mock and real data** flows via Axios/WebSocket from a Flask backend.  
-- **Animations & design**: Framer Motion hover effects, Lucide icons, responsive layout and dark-mode theming.  
+The design is inspired by known frameworks (e.g. Canarytokens) and research: Stratosphere’s CTU-13 dataset includes honeypot captures.  We will manage honeypots automatically: the system may spin up decoys on demand or whitelist real services vs decoys to avoid false positives.
 
-Each piece demonstrates relevant skills (React development, CSS utilities, data visualization, REST/WebSocket integration) that are attractive to recruiters. The charts and layout code are built with official libraries (TailwindCSS【1†L307-L314】, Recharts, etc.) ensuring best practices.
+## Attack-Graph & Story Engine
 
-**Next Steps:** You can add features like geo-IP maps (show attack origin), threat scoring badges, or integration with threat intel feeds. But even this MVP is a strong, interview-ready project. Include screenshots, live demo, and the above architecture diagram (with diagrams like [35†embed_image]) in your portfolio/README.
+Building on the graph correlation, we will create an **Attack Story engine**: a summary of what happened, when, and what is next. Each incident will have a timeline (forensics) and a condensed story like: 
+> *“19:31:02: 10.0.0.23 conducted port scan (80/TCP). 19:31:05: SSH (22) detected open and brute force attempts. 19:31:10: authentication anomaly detected (multiple failures). 19:31:15: threat score reached 64. 19:31:20: score 82 (critical). 19:31:21: IPS quarantine triggered (10 min ban). 19:31:22: existing sessions terminated. 19:46:21: Ban expired.”*  
 
+This narrative is auto-generated from correlated events. It will be displayed in the UI’s incident view, and can be exported (e.g. to PDF/JSON) for reports.  Analysts can also expand nodes to see raw alerts or packet captures. This *story* approach transforms the system from “packet flood detector” into an “attack understanding” tool.  
+
+We will classify each attack’s phase (e.g. Recon, Credential Access, Exec, etc.) using rules or a small ML classifier on the features of the attack graph. This is analogous to MITRE’s ATT&CK classification, helping measure coverage and guiding predictions (“Likely next: Privilege Escalation or Exfiltration”).  
+
+The **Prediction Engine** will analyze partial graphs and historical patterns to guess the next steps. For example, if port scan + SMB enumeration + repeated logins are observed, the engine might predict “next: RDP connection attempt (70% likelihood), possible malware download (20%), lateral movement (10%)”. These percentages come from either rule-based probabilities or simple ML (e.g. naive Bayes on past incidents). This allows the system to recommend proactive monitoring or blocks (e.g. “monitor RDP ports on internal hosts”). 
+
+## Explainable Threat Scoring
+
+Every source IP (or user session) accrues a **Threat Score (0–100)**. This score is composed of weighted factors: each detection adds points (e.g. +25 for port scan, +20 for high traffic volume, +15 for signature match). We will design it so that the breakdown is visible:
+
+```
+THREAT SCORE FOR 10.0.0.23
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
++25 Port scanning detected  
++20 Excessive SSH connections (X11/min)  
++15 Anomalous payload pattern  
++10 3 IDS signatures triggered  
+ +8 Interaction with honeypot SSH  
+━━━━━━━━━━━━━━━━━━━━━━
+    88 / 100
+```
+
+This transparency (inspired by [16]’s “Amygdala” concept) lets analysts and auditors see *why* an IP was flagged. Under the hood, if ML models are used, we will apply explainability tools (SHAP/LIME) to attribute the score to features. For instance, a neural anomaly detector’s output will be broken into the key contributing features (e.g. “unusual packet size variance”).  
+
+Similarly, the UI will show a simple bar-chart graphic of contributions (like in [16] “Why was this IP blocked?”). This is crucial for trust: instead of a “black box 87/100 score,” the platform answers “because these concrete reasons led to the block.” This also helps meet regulatory requirements for explainability.
+
+## Policy Simulator & Attack Replay Lab
+
+Before deploying any new firewall rules or IPS policies, admins can simulate them. We will build:
+- **Rule Simulator:** Input a candidate rule (e.g. “block TCP 445 from 10.0.0.23”) and run it against historical traffic logs in our Forensics DB. The simulator reports how many packets/flows *would* be affected (benign vs malicious breakdown), and estimate impact. For example: “Out of 1,248,421 past packets, 3,842 match this rule; of those, 12 were legitimate connections and 3,830 were attacker attempts. Risk: LOW. Recommendation: APPLY.” This is akin to a policy audit and is more sophisticated than CRUD interfaces in normal firewalls.
+- **Attack Replay:** For any logged incident (or captured PCAP), provide a “Replay Incident” mode. It replays the recorded packets through the current rule set, showing what the legacy firewall/IDS did vs what *would happen now*. We show side-by-side counts of alerts triggered, packets blocked, sessions killed, etc. This lets analysts answer: “If I tighten this policy, will it break anything in this known attack?” or “If I change my rules, how would last week’s incident turn out?” 
+
+The replay system can pivot to “what-if” scenarios: e.g. compare Original Rules vs New Rules. It helps validate defensive changes against real attack data. Conceptually:
+
+```mermaid
+flowchart TD
+  subgraph Original
+    POriginal[Packets (Inc #1042)] -->|Original Firewall Rules| A[Alerts:4, Blocks:1]
+  end
+  subgraph New
+    POriginal -->|Modified Rules| B[Alerts:1, Blocks:1]
+  end
+```
+
+This defense simulator is a **policy lab** for analysts – it’s rarely seen in open-source tools but is extremely valuable for making safe changes.
+
+## Autonomous Response & Safety
+
+We will implement graduated automated responses based on threat score thresholds (Table 3):
+
+| Threat Score Range | Automated Response                                       |
+|--------------------|----------------------------------------------------------|
+| 0–20  (Low)        | Monitor only; add detailed logging                       |
+| 21–50 (Elevated)   | Increase logging level; trigger lightweight alerts       |
+| 51–70 (High)       | Rate-limit traffic from source; alert SOC                |
+| 71–85 (Critical)   | Temporarily block (quarantine) the IP for short period   |
+| 86–100 (Severe)    | Block/quarantine + notify admin; escalate to incident    |
+
+Table 3: **Example autonomous response policy**. Each action is logged and timestamped. Critically, every automated action is designed to be **explainable and reversible**. For instance, blocks are temporary (15–60 minutes) and subject to manual override. All rules pushed to the firewall come with metadata and a UI banner (“Auto-blocked by rule P-104”) that can be rolled back. 
+
+To ensure safety, we’ll adopt these practices:
+- **Whitelist precedence:** Predefined allow rules always override automatic blocks to avoid critical services being accidentally cut.  
+- **Stepwise automation:** By default, start in “monitoring” mode (alerts only) for a new rule/policy before auto-block is enabled. The SOC can flip an “auto-enforce” switch after review.  
+- **Shadow testing:** New rules can be applied in “learning” mode (no effect) to confirm they only hit malicious traffic. Only if safe are they promoted to active rules.  
+- **Adversarial considerations:** Recognize that ML models can be attacked (e.g. evasion or poisoning). We will include anomaly “sanity checks” (e.g. never drop traffic simply because of ML model without a confirmatory signature if it comes from a critical asset). For high-impact actions, always require a short manual confirmation (e.g. Slack integration where an admin must approve a block if score >90). 
+
+By combining clear thresholds and human oversight on the final step, the system avoids runaway mistakes. All decisions (why blocked, by which rule) are stored to an audit trail.
+
+## SOC UI/UX
+
+The analyst interface will be a modern dashboard with the following components:
+- **Summary Tiles:** Top row showing numeric stats (e.g. “Active Threats”, “Open Incidents”, “Quarantined IPs”, “Anomalies Detected”).  
+- **Live Attack Map/Graph:** A central pane with the network topology overlaid with threat indicators, or a real-time attack graph view. For example, the attacker nodes can pulse red, edges labeled by attack stage (as in mermaid above).  
+- **Incident List:** A table of active incidents (#1042, #1043, etc.) with attacker IP, current threat score, status. Selecting an incident brings up the **Attack Story Panel**, showing the timeline, graph, and individual alerts.  
+- **Threat Hunting Query:** A console for writing SQL-like or user-friendly queries against the data. E.g. `FROM traffic WHERE src_ip="10.0.0.23" AND threat_score>50 SINCE 10m`. Results show timestamped logs/alerts.  
+- **Firewall Rules UI:** A management screen to view/edit firewall/IPS rules. Each rule shows how many hits it got in logs; offers a “simulate” button for what-if analysis.  
+- **Explainability View:** For any alert, clicking “Explain” pops a panel with the threat score breakdown bars (like [16] example) and relevant evidence (packet snippet, matching signature name, etc.).  
+- **Reporting/Export:** One-click export of incident details as JSON/PDF for compliance.
+
+This UI will be designed for clarity: e.g. color-coded risk levels, graphs rather than raw text. We will wireframe critical screens (see sample flows below):
+
+```mermaid
+flowchart LR
+  A[Dashboard] --> B[Attack Graph View]
+  A --> C[Incident Table]
+  C --> D[Incident Detail (story timeline)]
+  D --> E[Forensics log/PCAP]
+  A --> F[Threat Hunt Query]
+  A --> G[Policy Simulator]
+  A --> H[Settings / Honeypots / Rules]
+```
+
+Figure: Simplified UI flow: from Dashboard to various functional pages. The actual GUI will use React components and be responsive. The goal is a **single-pane-of-glass** SOC: all context (graphs, scores, logs) at the analyst’s fingertips.
+
+## Testing Plan
+
+We will rigorously test each component and end-to-end behavior:
+
+- **Unit Tests:** For all parsers (packet -> flow), normalization, feature extraction functions, and ML model training code. Ensures individual modules work correctly.  
+- **Integration Tests:** Deploy in virtual environments (e.g. using Docker Compose or Kubernetes on a test cluster) and run synthetic traffic (known pcap replay, mixed benign/malicious flows) to verify the data pipeline, scoring, and UI integration.  
+- **Benchmarking:** Use labelled datasets (Table 1) to measure detection accuracy (Precision/Recall, F1), false-positive rates, and performance (packets/sec, CPU load) of the system vs baselines. E.g. compare our results on CIC-IDS2017 with published IDS systems.  
+- **Red-Team Exercises:** Create custom attacks using tools like Metasploit, Cobalt Strike, or script auto scanners. Simulate multi-stage intrusions on a live network and evaluate if/when the system detects each stage. Check that actions (blocks, alerts) happen correctly.  
+- **Adversarial Testing:** Attempt evasion by tweaking attack patterns (like [2] showed adaptive attacks can learn to bypass ML IDS). Also test poisoning resilience: gradually inject adversarially crafted "normal" data to see if anomaly models degrade.  
+- **Policy Validation:** Use the Policy Simulator to run through historical traffic. Ensure new rules don’t inadvertently block normal traffic (“false blocking rate”). This can be automated by running the simulator against a week of benign traffic and reporting any hits.  
+- **Usability Testing:** Have security analysts try the UI with mock scenarios to gather feedback on clarity and workflow.
+
+## Deployment & Infrastructure
+
+We assume **no strict budget or platform constraints**. The system should be deployable on-premises or in cloud/edge. Key considerations:
+
+- **Containerization:** All components (packet collector, engines, DBs, UI) will run as Docker containers (or Kubernetes pods). For example, the packet capture/IDS could run on a dedicated Linux sensor node, while analysis and UI run in cluster.  
+- **Orchestration:** We will provide deployment scripts (Docker Compose, Kubernetes Helm charts) to install on a server or cluster. This makes cloud deployment (AWS/GCP/Azure) possible by provisioning VMs.  
+- **Scalability:** The design supports horizontal scaling: e.g. multiple packet collectors or anomaly-engine workers can feed into a Kafka topic consumed by the correlation engine. We will architect stateless services where possible.  
+- **Hardware:** Can start on modest hardware (8-core CPU, 16–32GB RAM) for small office use. For enterprise, cluster deployment. No special hardware (e.g. FPGA) required.  
+- **OS Support:** Sensor nodes on Linux (for eBPF, low-level packet capture). The central backend can run on Linux or container platform. Windows servers would simply forward logs if needed.  
+- **Network Modes:** Can operate inline (as a bump-in-the-wire firewall/IPS) using NFQUEUE or smart switch port mirroring + passive block commands, or in tap mode feeding a central analysis engine. We will support both inline IPS mode and passive monitoring mode (with reactive blocking via controller APIs).  
+
+By using standard cloud-native tooling and providing both “roll-your-own” and managed options (e.g. an AWS Marketplace AMI), deployment can flex to use case. The system will include health monitoring endpoints and adhere to security best practices (TLS for UI, RBAC).
+
+## Monitoring & Observability
+
+To maintain trust in our system:
+
+- **Logging:** Every component emits structured logs (JSON) to a centralized ELK or Splunk cluster. Events include raw IDS alerts, anomaly scores, rule changes, analyst actions.  
+- **Metrics:** We instrument processes with Prometheus metrics (packets/sec, rule count, detection latency). Grafana dashboards show system load vs detection rate.  
+- **Alerts:** The system self-monitors: e.g. if the anomaly engine hasn’t ingested flows for >1min, it alerts on a “pipeline broken” event. It also monitors its own false-positive trend: sudden spike in blocked IPs might indicate misconfiguration.  
+- **Model Drift:** Periodically, a background job evaluates model accuracy on recent labeled data. If performance drops (e.g. anomaly detector sees all traffic flagged anomalous), it logs a “retrain needed” event.  
+- **CI/CD Integration:** We will set up continuous testing so that any code/model change triggers regression tests. A new ML model can only be promoted if it passes a validation suite. This ensures maintainability over time.
+
+## CI/CD & Documentation
+
+- **Version Control:** All code (analysis pipeline, models, UI) in Git with code reviews. Public open-source on GitHub (if desired).  
+- **Continuous Integration:** Automated builds with linting, unit tests, container image builds.  
+- **Continuous Deployment:** On push to `main` we deploy to a staging cluster; after QA, we tag releases. Infrastructure as Code (Terraform/Ansible) ensures repeatable environments.  
+- **Automated Model Updates:** A pipeline will retrain models on schedule (or on analyst re-labeling) and validate them before rollout.  
+- **Documentation:** We will maintain full docs:
+  - *Developer Docs:* Codebase architecture, API specs, data schema.  
+  - *User Guides:* Setup instructions, configuration manual, SOS (common issues).  
+  - *Analyst Guides:* How to interpret scores, respond to incidents, craft queries.  
+  - *Training Materials:* Example use-cases and how-to guides (e.g. “Simulating an RDP brute-force attack”).  
+  All docs will be versioned with the product (e.g. on ReadTheDocs or GitHub Pages).  
+
+## Timeline & Milestones
+
+We break the project into phases (~12–18 months total):
+
+1. **Phase 1 (Months 1–3): Foundations**  
+   - Finalize detailed requirements and threat model.  
+   - Develop **Data Pipeline** (packet capture + normalization). Set up initial DB (e.g. TimescaleDB/Influx).  
+   - Implement basic **Firewall+IDS integration**, playing back Suricata alerts into our system.  
+   - Establish dev/test infrastructure (CI pipeline, test traffic generation).  
+
+2. **Phase 2 (Months 4–6): Scoring & Baseline**  
+   - Build the **Threat Scoring Engine** (rules/weights for simple events).  
+   - Develop **Anomaly Detection model** prototypes (train on known data). Integrate with pipeline.  
+   - Launch initial **Dashboard UI** skeleton (show scores, alert table).  
+   - Begin accumulating real traffic for baseline learning.  
+
+3. **Phase 3 (Months 7–9): Correlation & Graphs**  
+   - Implement **Correlation Engine & Attack Graph** (link events by IP/time).  
+   - UI: add Incident view with timeline and graph visualization.  
+   - Integrate **Threat Intelligence** lookup (e.g. VirusTotal IP/vhost, abusedb).  
+   - Expand ML: train supervised models for signature detection as needed.  
+
+4. **Phase 4 (Months 10–12): Automation & Deception**  
+   - Develop **IPS/SOAR module**: allow auto-blocking based on thresholds. Test with “monitor-only” rollout.  
+   - Build **Honeypot Manager**: deploy and integrate fake services (e.g. SSH on port 2222 triggers).  
+   - Add **Explainable AI features**: e.g. SHAP on models, score breakdown in UI.  
+   - Attack Replay & Policy Simulator screens: implement logs replay functionality.  
+
+5. **Phase 5 (Months 13–15): Polishing & Testing**  
+   - Rigorous **Red Teaming**: simulate complex attacks, tune detection/response.  
+   - Performance optimization (packet rates).  
+   - Conduct **usability studies** and refine UI/UX.  
+   - Documentation writing, training materials prepared.  
+
+6. **Phase 6 (Months 16–18): Deployment & Hardening**  
+   - Prepare for production: containerize fully, test high-availability modes.  
+   - Security review (no sensitive data leaks, secure coding).  
+   - Final demos and handoff.  
+
+Each phase ends with a review demo. Agile sprints (2–3 weeks) within phases, with backlog refinement. 
+
+## Resource Estimates
+
+| Role               | Skills                                     | Estimated Effort |
+|--------------------|--------------------------------------------|------------------|
+| **Security Engineer/Architect** | Network security, IDS/IPS, threat modeling | 6–8 person-months (lead design, reviews) |
+| **ML Engineer/Data Scientist**   | Machine learning, anomaly detection, RL    | 8–10 person-months (models, tuning)    |
+| **Backend Developer**           | Go/Python, databases, APIs                 | 6–8 person-months (pipeline, engines)  |
+| **Frontend Developer**          | React/JS, D3.js (charts), UI/UX design     | 4–6 person-months (dashboard, tools)   |
+| **DevOps Engineer**            | Docker/K8s, CI/CD, infra-as-code           | 3–4 person-months (deployment, scaling)|
+| **QA/Tester**                  | Security testing, automation               | 4–6 person-months (testing, red-team)  |
+| **Project Manager / PM**       | Coordination, documentation                | 4–5 person-months (schedule, reviews)  |
+
+*Team Total:* ~6-8 persons over ~12-18 months. These estimates assume some roles (e.g. backend dev) can overlap tasks. Budget: mid-range (no costly licenses).  
+
+## Risks & Mitigations
+
+- **False Positives Over-Blocking:** Risk of the system blocking legitimate traffic due to ML misclassification. *Mitigation:* Conservative default thresholds, lengthy testing in monitor mode, and easy rollback of rules. Implement allow-lists for critical assets.  
+- **Adversarial Evasion:** Attackers might probe the ML system to find weaknesses. *Mitigation:* Continuously update models with latest attack data; use ensemble of methods so bypassing one doesn’t defeat all. Monitor model confidence and fall back to rules.  
+- **Data Quality:** Garbage in, garbage out. If training data is unrepresentative, models fail. *Mitigation:* Use diverse datasets (Table 1), periodically retrain on real network traffic marked by analysts. Augment with synthetic anomalies.  
+- **Performance Bottlenecks:** Real-time analysis might lag on high throughput. *Mitigation:* Profile hotspots, offload heavy tasks (e.g. feature extraction) to compiled code, support sampling on extremely high volume segments, and scale horizontally.  
+- **Complexity/Scope Creep:** The feature set is broad. *Mitigation:* Prioritize core capabilities first (detection, scoring, UI), and phase in advanced features. Keep prototypes small and iterate.  
+- **Regulatory/Privacy Issues:** Deep packet inspection may conflict with privacy regulations. *Mitigation:* Focus on metadata and statistical features. Offer an encrypted-deep-inspection toggle and comply with region-specific rules.
+
+By planning each phase with risk reviews and fallback options, we ensure project resilience.
+
+## Related Work and Differentiators
+
+We surveyed existing open-source and research efforts (Table 4):
+
+| Project / Paper            | Type                    | ML/Adaptive?           | Key Features               | Gaps (Our Opportunity)                                              |
+|----------------------------|-------------------------|------------------------|----------------------------|---------------------------------------------------------------------|
+| **Suricata (OISF)**        | NIDS/IPS (C, open-src)  | No (signatures, some flow tracking) | High-speed NIDS, IPS, NSM logs | Static rules only. No ML scoring or dynamic policy adaptation.      |
+| **Zeek (Bro)**             | Network Monitor (C++)   | No (scriptable policies) | Deep traffic analysis, logs  | Passive only, manual correlation needed.                            |
+| **Security Onion**         | Platform                | No (bundled Suricata, ELK) | Aggregated alerts, dashboard | Still static IDS; no autonomous response or graph correlation.     |
+| **Wazuh**                  | HIDS/HIPAA (ELK/Kibana) | Minimal ML (log anomaly) | Host-based, compliance    | Focus on logs, not active network defense.                          |
+| **Stratosphere Slips**     | IDS/IPS (Python)       | Yes (ML behavioral)     | ML for intrusion behaviors  | Research prototype; not full platform; lacks integrated SOC UI.     |
+| **Snort**                  | NIDS (C, open-src)     | No                      | Signature-based IDS        | Static, high false pos for new threats.                             |
+| **FireRL (2025)**         | Research (RL firewall) | Yes (Deep Q-learning)   | RL-based rule tuning       | Simulated environment only; no attack graph or UI; not OSS.        |
+| **RL-Firewall (ICC 2020)** | Research               | Yes (Actor-Critic RL)   | Adaptive rule management    | Academic prototype; limited scale testing.                          |
+| **AI-IDS / IDS-ML repos**  | Demos (Python Jupyter)  | Yes (various ML)       | ML detection on KDD, CIC   | Examples; no real-time engine or policy control.                    |
+| **Gen0Sec Synapse/Amygdala**| Commercial XDR (Docs)  | Yes (fingerprinting, AI) | Bot blocking, rule sync    | Closed-source; conceptually similar (auto-block), but no open API.  |
+
+Table 4: **Comparison with existing tools/papers.**  We see most OSS tools are static. Academic works show RL firewall (e.g. FireRL) but lack full-stack implementation. No project unifies *multi-stage attack understanding, prediction, simulation, and explanation* as we propose. Our differentiators: explainable scoring (detailed rationale), attack graph/story engine, policy simulation lab, and deception integration. These gaps make our project unique.
+
+**Related Papers:** We will survey and cite academically:
+- FireRL (Informatica 2025) – shows RL for firewall; we extend it with deep learning and real-time UI.  
+- “AI-Driven Dynamic Firewall…” (arXiv 2025) – similar hybrid LSTM/CNN + DQN. We plan to build on its success metrics.  
+- Many IDS surveys and anomaly papers (e.g. Nunez et al.) confirm feasibility of self-learning IDS.  
+- Attack graph literature (e.g. SentinelOne on usage) supports our design.  
+We will continuously audit GitHub and the literature to ensure no direct duplication. Our plan is more comprehensive than any single project/paper.
+
+---
+
+Each section above is thoroughly researched. We will implement and iterate, guided by benchmarks and user feedback. The final deliverable will be a **detailed project plan document** (`firewall_plan.txt`) including architecture diagrams (as above), tables of features/data/models, and citations to justify design choices. This plan ensures we build a cutting-edge “Smart Self-Learning Firewall” that truly stands out in both innovation and practical security impact.  
+
+**Sources:** We referenced recent studies on ML firewalls and IDS, security frameworks (SentinelOne), and existing datasets/projects as noted above. Each major claim in this plan is backed by industry research or open-source precedent.
