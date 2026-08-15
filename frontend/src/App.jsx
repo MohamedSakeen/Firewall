@@ -10,6 +10,9 @@ import NetworkTraffic from './pages/NetworkTraffic';
 import RulesManager from './pages/RulesManager';
 import LogsViewer from './pages/LogsViewer';
 import Settings from './pages/Settings';
+import IncidentsView from './pages/IncidentsView';
+import AttackGraphView from './pages/AttackGraphView';
+import PolicySimulatorView from './pages/PolicySimulatorView';
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/incidents" element={<IncidentsView />} />
+            <Route path="/attack-graph" element={<AttackGraphView />} />
+            <Route path="/simulator" element={<PolicySimulatorView />} />
             <Route path="/firewall" element={<Firewall />} />
             <Route path="/ids" element={<IDSAlerts />} />
             <Route path="/ips" element={<IPSActions />} />

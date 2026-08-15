@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Shield, ShieldAlert, ShieldBan, Activity, Network, FileJson, ScrollText, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Shield, ShieldAlert, ShieldBan, Activity, Network, FileJson, ScrollText, Settings, User, ChevronLeft, ChevronRight, Layers, Cpu } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/incidents', label: 'Incidents', icon: Layers },
+  { path: '/attack-graph', label: 'Attack Graph', icon: Network },
+  { path: '/simulator', label: 'Policy Simulator', icon: Cpu },
   { path: '/firewall', label: 'Firewall Rules', icon: Shield },
   { path: '/ids', label: 'IDS Alerts', icon: ShieldAlert },
   { path: '/ips', label: 'IPS Actions', icon: ShieldBan },
@@ -41,13 +44,13 @@ export default function Sidebar() {
               exit={{ opacity: 0, width: 0 }} 
               className="text-xl font-bold tracking-wider text-white"
             >
-              NetGuard
+              NetGuard AI
             </motion.span>
           )}
         </AnimatePresence>
       </div>
       
-      <div className="flex-1 py-4 overflow-hidden">
+      <div className="flex-1 py-4 overflow-y-auto">
         <nav className="space-y-1 px-3">
           {navItems.map((item) => {
             const Icon = item.icon;
