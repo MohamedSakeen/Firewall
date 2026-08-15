@@ -2,7 +2,7 @@ import sys
 import threading
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -23,6 +23,10 @@ def create_app():
     from api.routes.firewall import firewall_bp
     from api.routes.rules import rules_bp
     from api.routes.logs import logs_bp
+    from api.routes.incidents import incidents_bp
+    from api.routes.learning import learning_bp
+    from api.routes.simulation import simulation_bp
+    from engine.health.self_monitoring import global_self_monitoring
 
     app.register_blueprint(alert_bp)
     app.register_blueprint(ips_bp)
@@ -30,6 +34,13 @@ def create_app():
     app.register_blueprint(firewall_bp)
     app.register_blueprint(rules_bp)
     app.register_blueprint(logs_bp)
+    app.register_blueprint(incidents_bp)
+    app.register_blueprint(learning_bp)
+    app.register_blueprint(simulation_bp)
+
+    @app.route("/api/health", methods=["GET"])
+    def health_check():
+        return jsonify(global_self_monitoring.run_health_check())
 
     socketio.init_app(app)
     return app
