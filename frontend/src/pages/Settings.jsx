@@ -24,7 +24,11 @@ export default function Settings() {
 
   return (
     <div className="space-y-4">
-      <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Settings</div>
+      {/* Header (Checklist Section 10) */}
+      <div>
+        <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Settings</h1>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">System administration, daemon connection, and engine parameters</p>
+      </div>
 
       <div className="rounded p-4 max-w-2xl space-y-5" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         {/* Backend Connectivity */}

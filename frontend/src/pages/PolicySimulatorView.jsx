@@ -25,9 +25,10 @@ export default function PolicySimulatorView() {
 
   return (
     <div className="space-y-4">
+      {/* Header (Checklist Section 10) */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Policy Simulator</div>
-        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Simulate rule impacts & evaluate what-if defensive options</div>
+        <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Policy Simulator</h1>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Simulate rule impacts and evaluate defensive what-if options</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

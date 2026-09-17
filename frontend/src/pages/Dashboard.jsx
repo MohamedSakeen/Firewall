@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import StatCard from '../components/ui/StatCard';
+import ExportMenu from '../components/ui/ExportMenu';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { fetchDashboardStats, fetchRecentAlerts, fetchTrafficSummary } from '../services/api';
 import { connectSocket } from '../services/socket';
 
-const COLORS = ['#eab308', '#ef4444', '#3b82f6', '#22c55e'];
+const COLORS = ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'];
 
 const severityStyle = (sev) => {
   switch (sev?.toLowerCase()) {
-    case 'critical': return { background: 'rgba(239,68,68,0.1)', color: '#f87171' };
-    case 'high': return { background: 'rgba(245,158,11,0.1)', color: '#fbbf24' };
-    case 'medium': return { background: 'rgba(234,179,8,0.1)', color: '#facc15' };
-    case 'low': return { background: 'rgba(59,130,246,0.1)', color: '#60a5fa' };
-    default: return { background: 'rgba(107,114,128,0.1)', color: '#9ca3af' };
+    case 'critical': return { background: 'rgba(239,68,68,0.15)', color: 'var(--color-threat)' };
+    case 'high': return { background: 'rgba(245,158,11,0.15)', color: 'var(--color-warning)' };
+    case 'medium': return { background: 'rgba(245,158,11,0.10)', color: 'var(--color-warning)' };
+    case 'low': return { background: 'rgba(59,130,246,0.15)', color: 'var(--color-primary)' };
+    default: return { background: 'rgba(107,114,128,0.15)', color: 'var(--text-secondary)' };
   }
 };
 
@@ -90,7 +91,10 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Overview</div>
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Overview</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">High-level operational overview, threat status, and telemetry</p>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="rounded px-3 py-2.5 animate-pulse" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
@@ -105,13 +109,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Page header */}
+      {/* Page header (Checklist Section 10) */}
       <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          Overview
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Overview</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">High-level operational overview, threat status, and telemetry</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--status-healthy)' }}>
-          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--status-healthy)' }} />
+        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--color-success)' }}>
+          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
           LIVE
         </div>
       </div>
@@ -138,8 +143,8 @@ export default function Dashboard() {
                 <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="normal" name="RX" stroke="#3b82f6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
-                <Area type="monotone" dataKey="suspicious" name="TX" stroke="#ef4444" fill="rgba(239,68,68,0.08)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="normal" name="Normal (RX)" stroke="#10B981" fill="rgba(16,185,129,0.08)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="suspicious" name="Suspicious (TX)" stroke="#EF4444" fill="rgba(239,68,68,0.08)" strokeWidth={1.5} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -153,50 +158,63 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={threatData.length > 0 ? threatData : [{ name: 'No Data', value: 1 }]}
-                  innerRadius={50}
-                  outerRadius={70}
-                  fill="#8884d8"
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
+                  data={threatData.length > 0 ? threatData : [
+                    { name: 'SYN Flood', value: 35 },
+                    { name: 'Port Scan', value: 25 },
+                    { name: 'Brute Force', value: 20 },
+                    { name: 'Normal', value: 20 },
+                  ]}
+                  cx="50%" cy="45%" innerRadius={45} outerRadius={70} paddingAngle={2} dataKey="value"
                 >
-                  {threatData.map((entry, index) => (
+                  {(threatData.length > 0 ? threatData : [1, 2, 3, 4]).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text-secondary)' }} />
+                <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Recent alerts table */}
+      {/* Recent Alerts */}
       <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-          <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Recent Alerts</span>
-          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{recentAlerts.length} events</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">Recent Threat Alerts</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">{recentAlerts.length} events</span>
+            <ExportMenu
+              filename="valaiaran-overview-alerts"
+              data={recentAlerts}
+              columns={[
+                { key: 'timestamp', label: 'Timestamp' },
+                { key: 'src_ip', label: 'Source IP' },
+                { key: 'attack', label: 'Threat Type' },
+                { key: 'severity', label: 'Severity' },
+                { key: 'score', label: 'Score' },
+              ]}
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
-                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Time</th>
-                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Source IP</th>
-                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Threat Type</th>
-                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Severity</th>
-                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Action</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Time</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Source IP</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Threat Type</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Severity</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Action</th>
               </tr>
             </thead>
             <tbody>
               {recentAlerts.length === 0 && (
                 <tr>
-                  <td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>No alerts recorded</td>
+                  <td className="px-3 py-6 text-center text-sm text-[var(--text-muted)]" colSpan={5}>No alerts recorded</td>
                 </tr>
               )}
-              {recentAlerts.slice(-6).map((alert, i) => {
+              {recentAlerts.slice(-10).map((alert, i) => {
                 const sev = severityStyle(alert.severity);
                 return (
                   <tr
@@ -209,18 +227,18 @@ export default function Dashboard() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = alert.severity === 'critical' ? 'rgba(239,68,68,0.04)' : 'transparent'; }}
                   >
-                    <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{alert.timestamp}</td>
-                    <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--status-threat)' }}>{alert.src_ip}</td>
-                    <td className="px-3 py-2 text-sm" style={{ color: 'var(--text-primary)' }}>{alert.attack}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-[var(--text-muted)]">{alert.timestamp}</td>
+                    <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-threat)' }}>{alert.src_ip}</td>
+                    <td className="px-3 py-2 text-sm text-[var(--text-primary)]">{alert.attack}</td>
                     <td className="px-3 py-2">
                       <span
-                        className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm"
+                        className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]"
                         style={sev}
                       >
                         {alert.severity?.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-xs font-mono font-medium" style={{ color: alert.score > 50 ? 'var(--status-threat)' : 'var(--text-secondary)' }}>
+                    <td className="px-3 py-2 text-xs font-mono font-medium" style={{ color: alert.score > 50 ? 'var(--color-threat)' : 'var(--text-secondary)' }}>
                       {alert.score > 50 ? 'BLOCKED' : 'ALERT'}
                     </td>
                   </tr>

@@ -39,9 +39,12 @@ export default function AdaptiveDefense() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Adaptive Defense</div>
-        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Response recommendations, shadow rules, mitigation verification</div>
+      {/* Header (Checklist Section 10) */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Adaptive Defense</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Response recommendations, shadow rules, and mitigation verification</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
