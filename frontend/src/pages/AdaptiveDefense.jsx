@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Eye, CheckCircle2, Play, AlertCircle, Check, X, ShieldAlert, Cpu } from 'lucide-react';
 import axios from 'axios';
 
 export default function AdaptiveDefense() {
@@ -12,170 +10,83 @@ export default function AdaptiveDefense() {
   const [criticality, setCriticality] = useState('MEDIUM');
   const [newShadowIp, setNewShadowIp] = useState('192.168.1.180');
 
-  useEffect(() => {
-    fetchShadowRules();
-    getRecommendation(threatScore, criticality);
-  }, []);
+  useEffect(() => { fetchShadowRules(); getRecommendation(threatScore, criticality); }, []);
 
   const fetchShadowRules = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/responses/shadow');
-      setShadowRules(res.data.shadow_rules || []);
-    } catch (err) {
-      console.error(err);
-    }
+    try { const res = await axios.get('http://localhost:5000/api/responses/shadow'); setShadowRules(res.data.shadow_rules || []); } catch (err) { console.error(err); }
   };
 
   const getRecommendation = async (score, crit) => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/responses/recommendations?threat_score=${score}&criticality=${crit}`);
-      setRecommendations(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    try { const res = await axios.get(`http://localhost:5000/api/responses/recommendations?threat_score=${score}&criticality=${crit}`); setRecommendations(res.data); } catch (err) { console.error(err); }
   };
 
   const addShadowRule = async () => {
-    try {
-      await axios.post('http://localhost:5000/api/responses/shadow', {
-        target_ip: newShadowIp,
-        target_port: 80,
-        action: 'BLOCK'
-      });
-      fetchShadowRules();
-    } catch (err) {
-      console.error(err);
-    }
+    try { await axios.post('http://localhost:5000/api/responses/shadow', { target_ip: newShadowIp, target_port: 80, action: 'BLOCK' }); fetchShadowRules(); } catch (err) { console.error(err); }
   };
 
   const promoteShadowRule = async (rule_id) => {
-    try {
-      await axios.post('http://localhost:5000/api/responses/shadow/promote', { rule_id });
-      fetchShadowRules();
-    } catch (err) {
-      console.error(err);
-    }
+    try { await axios.post('http://localhost:5000/api/responses/shadow/promote', { rule_id }); fetchShadowRules(); } catch (err) { console.error(err); }
   };
 
   const verifyResponse = async () => {
-    try {
-      const res = await axios.post('http://localhost:5000/api/responses/verify', verificationInput);
-      setVerificationResult(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    try { const res = await axios.post('http://localhost:5000/api/responses/verify', verificationInput); setVerificationResult(res.data); } catch (err) { console.error(err); }
+  };
+
+  const inputStyle = {
+    background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
+    borderRadius: 'var(--radius)', fontSize: '13px', padding: '5px 8px', outline: 'none', width: '100%',
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-          <ShieldCheck className="text-cyan-400" /> Adaptive Defense & Verification Center
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Response recommendation engine, non-blocking shadow rules evaluation, and closed-loop mitigation verification.
-        </p>
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Adaptive Defense</div>
+        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Response recommendations, shadow rules, mitigation verification</div>
       </div>
 
-      {/* Grid: Recommendation Engine & Shadow Rules */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Recommendation Engine */}
-        <div className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-5 backdrop-blur-md space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Cpu size={18} className="text-purple-400" /> Adaptive Response Policy Calculator
-          </h2>
-          <p className="text-xs text-gray-400">
-            Calculates optimal defensive posture by weighing threat intensity against asset criticality.
-          </p>
-
-          <div className="space-y-3 bg-gray-950/50 p-4 rounded-lg border border-gray-800">
+        <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Response Policy Calculator</div>
+          <div className="space-y-2 rounded p-3" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Threat Score: {threatScore}</label>
-              <input 
-                type="range" min="0" max="100" 
-                value={threatScore}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  setThreatScore(val);
-                  getRecommendation(val, criticality);
-                }}
-                className="w-full accent-cyan-500"
-              />
+              <label className="text-[11px] block mb-0.5" style={{ color: 'var(--text-muted)' }}>Threat Score: {threatScore}</label>
+              <input type="range" min="0" max="100" value={threatScore} onChange={(e) => { const val = parseInt(e.target.value); setThreatScore(val); getRecommendation(val, criticality); }} className="w-full" style={{ accentColor: 'var(--accent)' }} />
             </div>
-
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Asset Criticality</label>
-              <select 
-                value={criticality}
-                onChange={(e) => {
-                  setCriticality(e.target.value);
-                  getRecommendation(threatScore, e.target.value);
-                }}
-                className="w-full bg-gray-900 border border-gray-700 text-white rounded px-3 py-1.5 text-sm"
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-                <option value="CRITICAL">CRITICAL</option>
+              <label className="text-[11px] block mb-0.5" style={{ color: 'var(--text-muted)' }}>Asset Criticality</label>
+              <select value={criticality} onChange={(e) => { setCriticality(e.target.value); getRecommendation(threatScore, e.target.value); }} style={inputStyle}>
+                <option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="HIGH">HIGH</option><option value="CRITICAL">CRITICAL</option>
               </select>
             </div>
-
             {recommendations && (
-              <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-lg text-xs space-y-2 mt-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Recommended Action:</span>
-                  <span className="font-bold text-cyan-300 px-2 py-0.5 bg-cyan-500/20 rounded font-mono">
-                    {recommendations.recommended_action}
-                  </span>
-                </div>
-                <div className="text-gray-300">{recommendations.reason}</div>
+              <div className="rounded p-2 text-xs space-y-1" style={{ background: 'var(--accent-muted)', border: '1px solid rgba(59,130,246,0.15)' }}>
+                <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Recommended:</span><span className="font-mono font-medium" style={{ color: 'var(--accent)' }}>{recommendations.recommended_action}</span></div>
+                <div style={{ color: 'var(--text-secondary)' }}>{recommendations.reason}</div>
               </div>
             )}
           </div>
         </div>
 
         {/* Shadow Rules */}
-        <div className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-5 backdrop-blur-md space-y-4">
+        <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Eye size={18} className="text-amber-400" /> Active Shadow Rules
-            </h2>
-            <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-mono">
-              NON-BLOCKING
-            </span>
+            <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Shadow Rules</div>
+            <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded-sm" style={{ background: 'rgba(234,179,8,0.1)', color: '#facc15' }}>NON-BLOCKING</span>
           </div>
-
           <div className="flex gap-2">
-            <input 
-              type="text" 
-              value={newShadowIp} 
-              onChange={(e) => setNewShadowIp(e.target.value)} 
-              placeholder="Target IP" 
-              className="flex-1 bg-gray-950 border border-gray-700 text-white text-xs px-3 py-1.5 rounded"
-            />
-            <button 
-              onClick={addShadowRule} 
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded transition-colors"
-            >
-              Add Shadow Rule
-            </button>
+            <input type="text" value={newShadowIp} onChange={(e) => setNewShadowIp(e.target.value)} placeholder="Target IP" style={{ ...inputStyle, fontFamily: 'var(--font-mono)', fontSize: '12px' }} />
+            <button onClick={addShadowRule} className="shrink-0 px-2.5 py-1 text-xs font-medium rounded transition-colors" style={{ background: 'var(--status-warning)', color: '#000' }}>Add</button>
           </div>
-
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {shadowRules.map((rule, idx) => (
-              <div key={idx} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3 text-xs flex justify-between items-center">
+              <div key={idx} className="rounded p-2 flex justify-between items-center text-xs" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
                 <div>
-                  <div className="font-mono text-cyan-300 font-bold">{rule.rule_id}: {rule.target_ip}</div>
-                  <div className="text-gray-400">Hits: {rule.matches} | Legitimate: {rule.legitimate_matches} | Mode: {rule.mode}</div>
+                  <div className="font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{rule.rule_id}: {rule.target_ip}</div>
+                  <div style={{ color: 'var(--text-muted)' }}>Hits: {rule.matches} | Legit: {rule.legitimate_matches} | {rule.mode}</div>
                 </div>
                 {rule.mode === 'SHADOW' && (
-                  <button 
-                    onClick={() => promoteShadowRule(rule.rule_id)}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium transition-colors"
-                  >
-                    Promote Active
-                  </button>
+                  <button onClick={() => promoteShadowRule(rule.rule_id)} className="px-2 py-1 text-[11px] font-medium rounded transition-colors" style={{ background: 'var(--status-healthy)', color: '#fff' }}>Promote</button>
                 )}
               </div>
             ))}
@@ -183,53 +94,34 @@ export default function AdaptiveDefense() {
         </div>
       </div>
 
-      {/* Mitigation Verification */}
-      <div className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-5 backdrop-blur-md space-y-4">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <CheckCircle2 size={18} className="text-emerald-400" /> Response Effectiveness Verification
-        </h2>
-        <p className="text-xs text-gray-400">
-          Measures before-vs-after traffic throughput rates to empirically prove whether enforcement stopped the attack.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-950/50 p-4 rounded-lg border border-gray-800">
+      {/* Verification */}
+      <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Response Verification</div>
+        <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Before/after throughput comparison for mitigation proof</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded p-3" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Pre-Mitigation PPS (packets/sec)</label>
-            <input 
-              type="number" 
-              value={verificationInput.pps_before} 
-              onChange={(e) => setVerificationInput({...verificationInput, pps_before: parseFloat(e.target.value)})}
-              className="w-full bg-gray-900 border border-gray-700 text-white px-3 py-1.5 rounded text-sm"
-            />
+            <label className="text-[11px] block mb-0.5" style={{ color: 'var(--text-muted)' }}>Pre-Mitigation PPS</label>
+            <input type="number" value={verificationInput.pps_before} onChange={(e) => setVerificationInput({...verificationInput, pps_before: parseFloat(e.target.value)})} style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Post-Mitigation PPS (packets/sec)</label>
-            <input 
-              type="number" 
-              value={verificationInput.pps_after} 
-              onChange={(e) => setVerificationInput({...verificationInput, pps_after: parseFloat(e.target.value)})}
-              className="w-full bg-gray-900 border border-gray-700 text-white px-3 py-1.5 rounded text-sm"
-            />
+            <label className="text-[11px] block mb-0.5" style={{ color: 'var(--text-muted)' }}>Post-Mitigation PPS</label>
+            <input type="number" value={verificationInput.pps_after} onChange={(e) => setVerificationInput({...verificationInput, pps_after: parseFloat(e.target.value)})} style={inputStyle} />
           </div>
           <div className="flex items-end">
-            <button 
-              onClick={verifyResponse}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded transition-colors"
-            >
-              Verify Mitigation Outcome
-            </button>
+            <button onClick={verifyResponse} className="w-full py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--status-healthy)', color: '#fff' }}>Verify</button>
           </div>
         </div>
-
         {verificationResult && (
-          <div className={`p-4 rounded-lg border text-sm ${
-            verificationResult.status === 'SUCCESS' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-300'
-          }`}>
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-bold">Verification Outcome: {verificationResult.status}</span>
-              <span className="font-mono text-lg font-bold">{verificationResult.effectiveness_pct}% Effectiveness</span>
+          <div className="rounded p-2.5 text-sm" style={{
+            background: verificationResult.status === 'SUCCESS' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `1px solid ${verificationResult.status === 'SUCCESS' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: verificationResult.status === 'SUCCESS' ? '#4ade80' : '#f87171',
+          }}>
+            <div className="flex justify-between items-center mb-0.5">
+              <span className="font-medium text-xs">Outcome: {verificationResult.status}</span>
+              <span className="font-mono text-sm font-semibold">{verificationResult.effectiveness_pct}%</span>
             </div>
-            <div className="text-xs">{verificationResult.message}</div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{verificationResult.message}</div>
           </div>
         )}
       </div>

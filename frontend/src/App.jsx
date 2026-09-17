@@ -22,11 +22,11 @@ import SecurityEventsView from './pages/SecurityEventsView';
 
 function App() {
   return (
-    <div className="flex bg-black text-gray-200 h-screen overflow-hidden font-sans">
+    <div className="flex h-screen overflow-hidden" style={{ fontFamily: 'var(--font-sans)', background: 'var(--bg-app)', color: 'var(--text-primary)' }}>
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900/50 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4" style={{ background: 'var(--bg-app)' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />

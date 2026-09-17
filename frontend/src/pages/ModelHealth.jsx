@@ -1,96 +1,82 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Cpu, ShieldCheck, Activity, RotateCcw, Award, CheckCircle } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import axios from 'axios';
 
 export default function ModelHealth() {
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchModels();
-  }, []);
+  useEffect(() => { fetchModels(); }, []);
 
   const fetchModels = async () => {
     setLoading(true);
-    try {
-      const res = await axios.get('http://localhost:5000/api/learning/models');
-      setModels(res.data.models || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    try { const res = await axios.get('http://localhost:5000/api/learning/models'); setModels(res.data.models || []); } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const statusStyle = (status) => {
+    switch (status) {
+      case 'PRODUCTION': return { background: 'rgba(34,197,94,0.1)', color: '#4ade80' };
+      case 'SHADOW': return { background: 'rgba(234,179,8,0.1)', color: '#facc15' };
+      default: return { background: 'rgba(59,130,246,0.1)', color: '#60a5fa' };
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-          <Cpu className="text-purple-400" /> AI Model Governance & Health
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Model versioning, validation accuracy metrics, shadow deployments, and emergency rollback.
-        </p>
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Model Health</div>
+        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Model versioning, validation metrics, rollback</div>
       </div>
 
-      {/* Models Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {models.map((model, idx) => (
-          <motion.div 
-            key={idx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-5 backdrop-blur-md space-y-4"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-white">{model.name}</h3>
-                <div className="text-xs font-mono text-purple-400">ID: {model.model_id} | v{model.version}</div>
-              </div>
-              <span className={`px-2.5 py-0.5 rounded text-xs font-bold font-mono ${
-                model.status === 'PRODUCTION' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                model.status === 'SHADOW' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              }`}>
-                {model.status}
-              </span>
-            </div>
-
-            <div className="bg-gray-950/50 p-3 rounded-lg border border-gray-800 space-y-2 text-xs">
-              <div className="flex justify-between text-gray-300">
-                <span>Dataset Version:</span>
-                <span className="font-mono text-cyan-300">{model.dataset_version}</span>
-              </div>
-              <div className="flex justify-between text-gray-300">
-                <span>Validation Accuracy:</span>
-                <span className="font-mono text-emerald-400 font-bold">
-                  {((model.validation_metrics?.accuracy || 0.965) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between text-gray-300">
-                <span>False Positive Rate:</span>
-                <span className="font-mono text-amber-400 font-bold">
-                  {((model.validation_metrics?.false_positive_rate || 0.008) * 100).toFixed(2)}%
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2 text-xs">
-              <span className="text-gray-400 flex items-center gap-1">
-                <CheckCircle size={14} className="text-emerald-400" /> Model Health Normal
-              </span>
-              <button 
-                onClick={() => alert("Rollback command executed to previous baseline version.")}
-                className="px-3 py-1 bg-red-900/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 rounded flex items-center gap-1 font-medium transition-colors"
-              >
-                <RotateCcw size={12} /> Rollback Version
-              </button>
-            </div>
-          </motion.div>
-        ))}
+      {/* Models Table */}
+      <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
+                {['Model', 'Version', 'Status', 'Dataset', 'Accuracy', 'FP Rate', 'Health', ''].map(h => (
+                  <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {loading && <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={8}>Loading...</td></tr>}
+              {!loading && models.length === 0 && <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={8}>No models registered</td></tr>}
+              {models.map((model, idx) => (
+                <tr key={idx} className="transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <td className="px-3 py-2">
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-heading)' }}>{model.name}</div>
+                    <div className="text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>{model.model_id}</div>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>v{model.version}</td>
+                  <td className="px-3 py-2"><span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded-sm" style={statusStyle(model.status)}>{model.status}</span></td>
+                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{model.dataset_version}</td>
+                  <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--status-healthy)' }}>
+                    {((model.validation_metrics?.accuracy || 0.965) * 100).toFixed(1)}%
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--status-warning)' }}>
+                    {((model.validation_metrics?.false_positive_rate || 0.008) * 100).toFixed(2)}%
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--status-healthy)' }} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => alert("Rollback command executed.")}
+                      className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded transition-colors"
+                      style={{ background: 'var(--danger-muted)', color: '#f87171', border: '1px solid rgba(239,68,68,0.15)' }}
+                    >
+                      <RotateCcw size={11} /> Rollback
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -59,3 +59,5 @@ deep-research-report.md
 # Local user files
 .user/
 .config/
+
+.playwright-mcp/

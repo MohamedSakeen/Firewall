@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Play, ShieldCheck, AlertCircle, Cpu, CheckCircle } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 export default function PolicySimulatorView() {
   const [ip, setIp] = useState('10.0.0.99');
@@ -11,132 +11,83 @@ export default function PolicySimulatorView() {
 
   const handleSimulate = async (e) => {
     e.preventDefault();
-    try {
-      const res = await axios.post('http://localhost:5000/api/simulation/simulate', {
-        ip,
-        port: parseInt(port) || null,
-        action
-      });
-      setSimulationResult(res.data.simulation_result);
-    } catch (err) {
-      console.error('Simulation failed:', err);
-    }
+    try { const res = await axios.post('http://localhost:5000/api/simulation/simulate', { ip, port: parseInt(port) || null, action }); setSimulationResult(res.data.simulation_result); } catch (err) { console.error('Simulation failed:', err); }
   };
 
   const handleCounterfactual = async () => {
-    try {
-      const res = await axios.post('http://localhost:5000/api/simulation/counterfactual', {
-        incident_id: 'INC-1001',
-        attacker_ip: ip
-      });
-      setCounterfactualResult(res.data);
-    } catch (err) {
-      console.error('Counterfactual failed:', err);
-    }
+    try { const res = await axios.post('http://localhost:5000/api/simulation/counterfactual', { incident_id: 'INC-1001', attacker_ip: ip }); setCounterfactualResult(res.data); } catch (err) { console.error('Counterfactual failed:', err); }
+  };
+
+  const inputStyle = {
+    background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
+    borderRadius: 'var(--radius)', fontSize: '13px', padding: '6px 10px', outline: 'none', width: '100%',
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Cpu className="text-cyan-400" /> Policy Simulator & Counterfactual Defense
-        </h1>
-        <p className="text-gray-400 text-sm">Simulate rule impacts on historical traffic & evaluate 'What-If' defensive options</p>
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Policy Simulator</div>
+        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Simulate rule impacts & evaluate what-if defensive options</div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Policy Simulator Form */}
-        <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Play size={18} className="text-cyan-400" /> Dry-Run Policy Simulator
-          </h2>
-          <form onSubmit={handleSimulate} className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Simulator */}
+        <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Dry-Run Simulator</div>
+          <form onSubmit={handleSimulate} className="space-y-2.5">
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Target IP Address</label>
-              <input
-                type="text"
-                value={ip}
-                onChange={(e) => setIp(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
-              />
+              <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Target IP</label>
+              <input type="text" value={ip} onChange={(e) => setIp(e.target.value)} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Target Port (Optional)</label>
-              <input
-                type="text"
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
-              />
+              <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Target Port</label>
+              <input type="text" value={port} onChange={(e) => setPort(e.target.value)} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Enforcement Action</label>
-              <select
-                value={action}
-                onChange={(e) => setAction(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="BLOCK">BLOCK</option>
-                <option value="RATE_LIMIT">RATE_LIMIT</option>
-                <option value="QUARANTINE">QUARANTINE</option>
+              <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Action</label>
+              <select value={action} onChange={(e) => setAction(e.target.value)} style={inputStyle}>
+                <option value="BLOCK">BLOCK</option><option value="RATE_LIMIT">RATE_LIMIT</option><option value="QUARANTINE">QUARANTINE</option>
               </select>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <Play size={16} /> Run Historical Simulation
+            <button type="submit" className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
+              <Play size={12} /> Run Simulation
             </button>
           </form>
 
           {simulationResult && (
-            <div className="mt-6 p-4 bg-gray-900/90 border border-cyan-500/30 rounded-xl space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Flows Analyzed:</span>
-                <span className="font-mono text-white">{simulationResult.flows_analyzed}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Would Block:</span>
-                <span className="font-mono text-yellow-400">{simulationResult.would_block}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">False-Block Rate:</span>
-                <span className="font-mono text-emerald-400">{simulationResult.false_block_rate}%</span>
-              </div>
-              <div className="pt-2 border-t border-gray-800 flex justify-between items-center">
-                <span className="text-sm text-gray-300 font-medium">Recommendation:</span>
-                <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${simulationResult.recommendation === 'SAFE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400'}`}>
-                  {simulationResult.recommendation}
-                </span>
+            <div className="rounded p-2.5 space-y-1.5 text-xs" style={{ background: 'var(--bg-inset)', border: '1px solid rgba(59,130,246,0.15)' }}>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Flows Analyzed:</span><span className="font-mono" style={{ color: 'var(--text-primary)' }}>{simulationResult.flows_analyzed}</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Would Block:</span><span className="font-mono" style={{ color: 'var(--status-warning)' }}>{simulationResult.would_block}</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>False-Block Rate:</span><span className="font-mono" style={{ color: 'var(--status-healthy)' }}>{simulationResult.false_block_rate}%</span></div>
+              <div className="pt-1.5 flex justify-between items-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Recommendation:</span>
+                <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{
+                  background: simulationResult.recommendation === 'SAFE' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: simulationResult.recommendation === 'SAFE' ? '#4ade80' : '#f87171',
+                }}>{simulationResult.recommendation}</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Counterfactual Defense */}
-        <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-cyan-400" /> Counterfactual 'What-If' Defense
-          </h2>
-          <p className="text-xs text-gray-400 mb-4">Compare defensive trade-offs between security mitigation & availability</p>
-          
-          <button
-            onClick={handleCounterfactual}
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg transition-colors text-sm mb-4"
-          >
-            Evaluate Defense Options for {ip}
+        {/* Counterfactual */}
+        <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Counterfactual Defense</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Compare security vs availability trade-offs</div>
+          <button onClick={handleCounterfactual} className="w-full py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)' }}>
+            Evaluate Options for {ip}
           </button>
 
           {counterfactualResult && (
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               {counterfactualResult.options.map((opt, i) => (
-                <div key={i} className="p-3 bg-gray-900/80 border border-gray-800 rounded-lg">
-                  <div className="flex items-center justify-between text-sm font-bold text-white">
-                    <span>{opt.option}</span>
-                    <span className="text-xs text-cyan-400 font-mono">Score: {opt.recommendation_score}/100</span>
+                <div key={i} className="rounded p-2.5 text-xs" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="flex items-center justify-between font-medium">
+                    <span style={{ color: 'var(--text-heading)' }}>{opt.option}</span>
+                    <span className="font-mono" style={{ color: 'var(--accent)' }}>{opt.recommendation_score}/100</span>
                   </div>
-                  <div className="text-xs text-gray-300 mt-1">Security: {opt.security_impact}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">Availability: {opt.availability_impact}</div>
+                  <div className="mt-1" style={{ color: 'var(--text-secondary)' }}>Security: {opt.security_impact}</div>
+                  <div style={{ color: 'var(--text-muted)' }}>Availability: {opt.availability_impact}</div>
                 </div>
               ))}
             </div>

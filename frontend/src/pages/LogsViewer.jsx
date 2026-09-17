@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Terminal, Search } from 'lucide-react';
+import { Search, Terminal } from 'lucide-react';
 import { fetchLogs } from '../services/api';
 
 function parseLevel(line) {
@@ -12,10 +12,10 @@ function parseLevel(line) {
 
 function levelColor(level) {
   switch (level) {
-    case 'error': return 'text-red-500';
-    case 'warn': return 'text-yellow-400';
-    case 'block': return 'text-red-400';
-    default: return 'text-blue-400';
+    case 'error': return 'var(--status-threat)';
+    case 'warn': return 'var(--status-warning)';
+    case 'block': return '#f87171';
+    default: return 'var(--status-info)';
   }
 }
 
@@ -60,54 +60,57 @@ export default function LogsViewer() {
     return matchesCategory && matchesSearch;
   });
 
+  const categories = ['all', 'alerts', 'blocked', 'ids', 'ips', 'firewall', 'threat_score'];
+
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="space-y-3 h-full flex flex-col">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">System Audit Logs</h1>
-        <div className="flex items-center space-x-3">
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>System Logs</div>
+        <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-            <input 
-              type="text" 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search log output..."
-              className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded-md pl-8 pr-3 py-1 focus:outline-none focus:border-cyan-500 w-56"
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={12} style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search logs..."
+              className="text-xs rounded pl-7 pr-2 py-1"
+              style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', outline: 'none', width: 180 }}
             />
           </div>
-          <span className="text-xs text-gray-500 font-mono">{filteredLogs.length} lines</span>
+          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{filteredLogs.length} lines</span>
         </div>
       </div>
 
-      <div className="flex space-x-1 border-b border-gray-800 bg-gray-900/50 p-1.5 rounded-t-lg">
-        {['all', 'alerts', 'blocked', 'ids', 'ips', 'firewall', 'threat_score'].map(cat => (
+      {/* Category tabs */}
+      <div className="flex gap-1 p-1 rounded" style={{ background: 'var(--bg-inset)' }}>
+        {categories.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
-              activeCategory === cat 
-                ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-700/50 font-bold' 
-                : 'text-gray-400 hover:text-gray-200'
-            }`}
+            className="px-2.5 py-1 rounded text-xs font-mono transition-colors"
+            style={{
+              background: activeCategory === cat ? 'var(--accent-muted)' : 'transparent',
+              color: activeCategory === cat ? 'var(--accent)' : 'var(--text-muted)',
+              fontWeight: activeCategory === cat ? 600 : 400,
+            }}
           >
             {cat.toUpperCase()}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 bg-black border border-gray-800 rounded-b-xl overflow-hidden flex flex-col shadow-2xl relative">
-        <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-r from-gray-900 to-gray-800 flex items-center px-4 border-b border-gray-700 z-10">
-          <Terminal size={14} className="text-gray-400 mr-2" />
-          <span className="text-gray-400 text-xs font-mono">tail -f /backend/logs/{activeCategory}.log</span>
+      {/* Log output */}
+      <div className="flex-1 rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+        <div className="flex items-center px-3 py-1" style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <Terminal size={12} style={{ color: 'var(--text-muted)', marginRight: 6 }} />
+          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>tail -f /backend/logs/{activeCategory}.log</span>
         </div>
-        <div ref={scrollRef} className="p-4 pt-10 font-mono text-sm text-gray-300 overflow-y-auto w-full h-full whitespace-pre-wrap">
+        <div ref={scrollRef} className="p-3 font-mono text-xs overflow-y-auto w-full h-full" style={{ color: 'var(--text-secondary)' }}>
           {filteredLogs.length === 0 && (
-            <span className="text-gray-600">No log entries found for this filter.</span>
+            <span style={{ color: 'var(--text-muted)' }}>No log entries found for this filter.</span>
           )}
           {filteredLogs.map((log, i) => (
-            <div key={i} className="py-0.5 border-b border-gray-900/50 hover:bg-gray-900/30 text-xs">
-              <span className="text-gray-600 mr-2">[{log.category.toUpperCase()}]</span>
-              <span className={levelColor(log.level)}>[{log.level.toUpperCase()}]</span> {log.text}
+            <div key={i} className="py-0.5" style={{ borderBottom: '1px solid rgba(30,32,40,0.5)' }}>
+              <span style={{ color: 'var(--text-muted)', marginRight: 6 }}>[{log.category.toUpperCase()}]</span>
+              <span style={{ color: levelColor(log.level) }}>[{log.level.toUpperCase()}]</span> {log.text}
             </div>
           ))}
         </div>
@@ -115,4 +118,3 @@ export default function LogsViewer() {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchDashboardStats } from '../services/api';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { fetchDashboardStats } from '../services/api';
 
 export default function Settings() {
   const [apiStatus, setApiStatus] = useState('checking');
@@ -17,39 +17,40 @@ export default function Settings() {
     })();
   }, []);
 
+  const inputStyle = {
+    background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
+    borderRadius: 'var(--radius)', fontSize: '13px', padding: '6px 10px', outline: 'none', width: '100%',
+  };
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white mb-4">Settings & Backend Status</h1>
-      
-      <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-lg p-6 max-w-2xl space-y-6">
+    <div className="space-y-4">
+      <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Settings</div>
+
+      <div className="rounded p-4 max-w-2xl space-y-5" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        {/* Backend Connectivity */}
         <div>
-          <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-800 pb-2">Backend Connectivity</h3>
-          <div className="flex items-center space-x-3 mb-4">
+          <div className="text-sm font-semibold mb-3 pb-2" style={{ color: 'var(--text-heading)', borderBottom: '1px solid var(--border-subtle)' }}>Backend Connectivity</div>
+          <div className="flex items-center gap-2 mb-3">
             {apiStatus === 'online' ? (
-              <span className="flex items-center text-xs font-mono text-green-400 bg-green-950/40 border border-green-800/50 px-3 py-1 rounded-full">
-                <CheckCircle2 size={14} className="mr-1.5" /> Flask API Backend: ONLINE (http://localhost:5000)
+              <span className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--status-healthy)' }}>
+                <CheckCircle2 size={13} /> Flask API: ONLINE (http://localhost:5000)
               </span>
             ) : apiStatus === 'offline' ? (
-              <span className="flex items-center text-xs font-mono text-red-400 bg-red-950/40 border border-red-800/50 px-3 py-1 rounded-full">
-                <AlertCircle size={14} className="mr-1.5" /> Backend Unreachable - Start `python api/api.py`
+              <span className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--status-threat)' }}>
+                <AlertCircle size={13} /> Backend Unreachable — Start python api/api.py
               </span>
             ) : (
-              <span className="text-xs font-mono text-gray-400">Testing connection...</span>
+              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>Testing connection...</span>
             )}
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Backend API Base URL</label>
-              <input 
-                type="text" 
-                value={endpoint} 
-                onChange={e => setEndpoint(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-cyan-500" 
-              />
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Backend API Base URL</label>
+              <input type="text" value={endpoint} onChange={e => setEndpoint(e.target.value)} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Packet Sniffer Interface</label>
-              <select className="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-cyan-500">
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Packet Sniffer Interface</label>
+              <select style={inputStyle}>
                 <option>Npcap Loopback / Default NIC (Windows)</option>
                 <option>eth0</option>
                 <option>wlan0</option>
@@ -59,28 +60,27 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Environment */}
         <div>
-          <h3 className="text-lg font-bold text-white mb-4 border-b border-gray-800 pb-2">Environment & Engine</h3>
-          
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-gray-300 text-sm">Theme</div>
-              <div className="text-gray-500 text-xs">Locked to SOC Cyber Dark Mode</div>
+          <div className="text-sm font-semibold mb-3 pb-2" style={{ color: 'var(--text-heading)', borderBottom: '1px solid var(--border-subtle)' }}>Environment & Engine</div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between py-1.5">
+              <div>
+                <div className="text-sm" style={{ color: 'var(--text-primary)' }}>Theme</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Locked to Security Console Dark</div>
+              </div>
+              <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--status-healthy)' }} />
             </div>
-            <div className="w-10 h-5 rounded-full bg-cyan-500 flex items-center p-1 cursor-pointer">
-               <div className="w-3 h-3 rounded-full bg-white shadow-md transform translate-x-5"></div>
+            <div className="flex items-center justify-between py-1.5">
+              <div>
+                <div className="text-sm" style={{ color: 'var(--text-primary)' }}>WebSocket Real-Time</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Socket.IO streaming telemetry & events</div>
+              </div>
+              <span className="text-xs font-mono font-medium" style={{ color: 'var(--accent)' }}>ACTIVE</span>
             </div>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-gray-300 text-sm">WebSocket Real-Time Broadcast</div>
-              <div className="text-gray-500 text-xs">Socket.IO streaming live telemetry & security events</div>
-            </div>
-            <span className="text-xs font-mono text-cyan-400 font-bold uppercase">Active</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
