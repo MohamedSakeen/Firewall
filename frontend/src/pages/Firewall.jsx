@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, X, Trash2 } from 'lucide-react';
 import { fetchFirewallRules, addFirewallRule, deleteFirewallRule } from '../services/api';
+import Pagination from '../components/ui/Pagination';
+import ExportMenu from '../components/ui/ExportMenu';
 
 const actionStyle = (action) => {
   switch (action) {
-    case 'ALLOW': return { background: 'rgba(34,197,94,0.1)', color: '#4ade80' };
-    case 'DROP': return { background: 'rgba(239,68,68,0.1)', color: '#f87171' };
-    default: return { background: 'rgba(234,179,8,0.1)', color: '#facc15' };
+    case 'ALLOW': return { background: 'rgba(16,185,129,0.15)', color: 'var(--color-success)' };
+    case 'DROP':
+    case 'DENY': return { background: 'rgba(239,68,68,0.15)', color: 'var(--color-threat)' };
+    default: return { background: 'rgba(245,158,11,0.15)', color: 'var(--color-warning)' };
   }
 };
 
@@ -15,6 +18,8 @@ export default function Firewall() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [filterText, setFilterText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   const [newRule, setNewRule] = useState({
     direction: 'IN', protocol: 'TCP', src: '', dst: 'ANY', port: '', action: 'DROP',
@@ -61,12 +66,20 @@ export default function Firewall() {
     }
   };
 
+  const handleFilterChange = (val) => {
+    setFilterText(val);
+    setCurrentPage(1);
+  };
+
   const filteredRules = rules.filter(r =>
     r.src?.toLowerCase().includes(filterText.toLowerCase()) ||
     r.port?.toLowerCase().includes(filterText.toLowerCase()) ||
     r.protocol?.toLowerCase().includes(filterText.toLowerCase()) ||
     r.action?.toLowerCase().includes(filterText.toLowerCase())
   );
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const pagedRules = filteredRules.slice(startIndex, startIndex + pageSize);
 
   const inputStyle = {
     background: 'var(--bg-inset)',
@@ -81,33 +94,52 @@ export default function Firewall() {
 
   return (
     <div className="space-y-4">
+      {/* Header (Checklist Section 10) */}
       <div className="flex justify-between items-center">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Firewall Rules</div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
-          style={{ background: 'var(--accent)', color: '#fff' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-hover)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent)'; }}
-        >
-          <Plus size={14} /> Add Rule
-        </button>
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Firewall Rules</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Packet filtering policies, port restrictions, and ACL enforcements</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ExportMenu
+            filename="valaiaran-firewall-rules"
+            data={filteredRules}
+            currentPageData={pagedRules}
+            columns={[
+              { key: 'id', label: 'Rule ID' },
+              { key: 'direction', label: 'Direction' },
+              { key: 'protocol', label: 'Protocol' },
+              { key: 'src', label: 'Source' },
+              { key: 'dst', label: 'Destination' },
+              { key: 'port', label: 'Port' },
+              { key: 'action', label: 'Action' },
+            ]}
+          />
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
+            style={{ background: 'var(--color-primary)', color: '#fff' }}
+          >
+            <Plus size={14} /> Add Rule
+          </button>
+        </div>
       </div>
 
-      <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+      <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={14} style={{ color: 'var(--text-muted)' }} />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={13} style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
               value={filterText}
-              onChange={e => setFilterText(e.target.value)}
+              onChange={e => handleFilterChange(e.target.value)}
               placeholder="Filter rules..."
-              className="text-xs rounded pl-7 pr-2 py-1"
-              style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', outline: 'none', width: 200 }}
+              className="text-xs rounded pl-7 pr-2 py-1 outline-none font-mono"
+              style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', width: 200 }}
             />
           </div>
-          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{filteredRules.length} rules</span>
+          <span className="text-[11px] font-mono text-[var(--text-muted)]">{filteredRules.length} rules</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -115,18 +147,18 @@ export default function Firewall() {
             <thead>
               <tr style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
                 {['ID', 'Dir', 'Proto', 'Source', 'Dest', 'Port', 'Action', 'Status', ''].map(h => (
-                  <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{h}</th>
+                  <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="text-sm">
+            <tbody className="text-sm font-mono">
               {loading && (
-                <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={9}>Loading...</td></tr>
+                <tr><td className="px-3 py-6 text-center text-sm font-sans text-[var(--text-muted)]" colSpan={9}>Loading...</td></tr>
               )}
               {!loading && filteredRules.length === 0 && (
-                <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={9}>No firewall rules configured</td></tr>
+                <tr><td className="px-3 py-6 text-center text-sm font-sans text-[var(--text-muted)]" colSpan={9}>No firewall rules configured</td></tr>
               )}
-              {filteredRules.map(rule => (
+              {pagedRules.map(rule => (
                 <tr
                   key={rule.id}
                   className="transition-colors"
@@ -134,28 +166,25 @@ export default function Firewall() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>#{rule.id}</td>
+                  <td className="px-3 py-2 text-xs text-[var(--text-muted)]">#{rule.id}</td>
                   <td className="px-3 py-2 text-xs">{rule.direction}</td>
-                  <td className="px-3 py-2 text-xs font-mono">{rule.protocol}</td>
-                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>{rule.src}</td>
-                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{rule.dst}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{rule.port}</td>
+                  <td className="px-3 py-2 text-xs">{rule.protocol}</td>
+                  <td className="px-3 py-2 text-xs text-[var(--text-primary)]">{rule.src}</td>
+                  <td className="px-3 py-2 text-xs text-[var(--text-secondary)]">{rule.dst}</td>
+                  <td className="px-3 py-2 text-xs">{rule.port}</td>
                   <td className="px-3 py-2">
-                    <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={actionStyle(rule.action)}>
+                    <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={actionStyle(rule.action)}>
                       {rule.action}
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: rule.active ? 'var(--status-healthy)' : 'var(--text-muted)' }} />
+                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: rule.active ? 'var(--color-success)' : 'var(--text-muted)' }} />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-right">
                     <button
                       onClick={() => handleDeleteRule(rule)}
                       title="Delete rule"
-                      className="p-1 rounded transition-colors"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--status-threat)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      className="p-1 rounded transition-colors text-[var(--text-muted)] hover:text-[var(--color-threat)]"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -165,28 +194,36 @@ export default function Firewall() {
             </tbody>
           </table>
         </div>
+
+        {/* 50 records/page Pagination (Checklist Section 12) */}
+        <Pagination
+          totalItems={filteredRules.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add Rule Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-lg rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
             <form onSubmit={handleAddRule}>
-              <div className="px-4 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Add Firewall Rule</span>
-                <button type="button" onClick={() => setModalOpen(false)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+              <div className="px-4 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-inset)' }}>
+                <span className="text-sm font-semibold text-[var(--text-heading)]">Add Firewall Rule</span>
+                <button type="button" onClick={() => setModalOpen(false)} className="text-[var(--text-muted)]"><X size={16} /></button>
               </div>
               <div className="p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Direction</label>
+                    <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Direction</label>
                     <select value={newRule.direction} onChange={e => setNewRule({ ...newRule, direction: e.target.value })} style={inputStyle}>
                       <option value="IN">IN</option>
                       <option value="OUT">OUT</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Protocol</label>
+                    <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Protocol</label>
                     <select value={newRule.protocol} onChange={e => setNewRule({ ...newRule, protocol: e.target.value })} style={inputStyle}>
                       <option value="TCP">TCP</option>
                       <option value="UDP">UDP</option>
@@ -197,20 +234,20 @@ export default function Firewall() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Source IP / CIDR</label>
+                    <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Source IP / CIDR</label>
                     <input type="text" value={newRule.src} onChange={e => setNewRule({ ...newRule, src: e.target.value })} placeholder="e.g. 192.168.1.100" style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Destination IP / CIDR</label>
+                    <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Destination IP / CIDR</label>
                     <input type="text" value={newRule.dst} onChange={e => setNewRule({ ...newRule, dst: e.target.value })} placeholder="e.g. ANY" style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Target Port(s)</label>
+                  <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Target Port(s)</label>
                   <input type="text" value={newRule.port} onChange={e => setNewRule({ ...newRule, port: e.target.value })} placeholder="e.g. 80, 443" style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Action</label>
+                  <label className="block text-[11px] font-medium mb-1 text-[var(--text-muted)]">Action</label>
                   <select value={newRule.action} onChange={e => setNewRule({ ...newRule, action: e.target.value })} style={inputStyle}>
                     <option value="DROP">DROP</option>
                     <option value="DENY">DENY</option>
@@ -219,8 +256,8 @@ export default function Firewall() {
                 </div>
               </div>
               <div className="px-4 py-3 flex justify-end gap-2" style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-inset)' }}>
-                <button type="button" onClick={() => setModalOpen(false)} className="px-3 py-1.5 text-xs font-medium rounded transition-colors" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-                <button type="submit" className="px-3 py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>Save Rule</button>
+                <button type="button" onClick={() => setModalOpen(false)} className="px-3 py-1.5 text-xs font-medium rounded transition-colors text-[var(--text-secondary)]">Cancel</button>
+                <button type="submit" className="px-3 py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--color-primary)', color: '#fff' }}>Save Rule</button>
               </div>
             </form>
           </div>

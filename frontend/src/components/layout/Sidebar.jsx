@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Activity, Shield, ShieldAlert, ShieldBan, Network,
   FileJson, ScrollText, Settings, Search, Server, ShieldCheck, Zap,
-  Layers, Cpu, Eye, ChevronLeft, ChevronRight
+  Layers, Cpu, Eye, Menu, X
 } from 'lucide-react';
 
 const navSections = [
@@ -64,31 +64,35 @@ export default function Sidebar() {
         borderRight: '1px solid var(--border-subtle)',
       }}
     >
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-10 z-50 flex items-center justify-center w-6 h-6 rounded-full transition-colors"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
-
-      {/* Brand */}
+      {/* Brand & Fixed Toggle (Checklist Section 8) */}
       <div
         className="flex items-center shrink-0 overflow-hidden"
         style={{
           height: 44,
-          padding: collapsed ? '0 16px' : '0 16px',
+          padding: '0 16px',
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <Shield size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? "Open navigation" : "Close navigation"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="flex items-center justify-center w-6 h-6 rounded transition-colors shrink-0"
+          style={{
+            color: 'var(--text-secondary)',
+            background: 'transparent',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          {collapsed ? <Menu size={16} /> : <X size={16} />}
+        </button>
         {!collapsed && (
           <span
-            className="ml-2.5 font-semibold text-sm whitespace-nowrap"
+            className="ml-3 font-semibold text-sm tracking-wide whitespace-nowrap overflow-hidden text-ellipsis"
             style={{ color: 'var(--text-heading)' }}
           >
-            NetGuard
+            ValaiAran
           </span>
         )}
       </div>

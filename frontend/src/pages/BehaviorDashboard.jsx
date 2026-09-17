@@ -58,15 +58,15 @@ export default function BehaviorDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header (Checklist Section 10) */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Baselines</div>
-          <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Per-asset statistical learning, trust gate & drift detection</div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Baselines</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Per-asset statistical learning, trust gate, and drift detection</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded-sm" style={modeStyle(learningMode)}>{learningMode}</span>
-          <button onClick={fetchData} className="p-1.5 rounded transition-colors" style={{ color: 'var(--text-secondary)', background: 'var(--bg-elevated)' }}>
+          <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded-[2px]" style={modeStyle(learningMode)}>{learningMode}</span>
+          <button onClick={fetchData} className="p-1.5 rounded transition-colors" style={{ color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }} title="Refresh baselines">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>

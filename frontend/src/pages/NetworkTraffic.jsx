@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Search } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
+import Pagination from '../components/ui/Pagination';
+import ExportMenu from '../components/ui/ExportMenu';
 import { fetchTrafficSummary } from '../services/api';
 import { connectSocket } from '../services/socket';
 
@@ -14,6 +17,9 @@ const tooltipStyle = {
 export default function NetworkTraffic() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   useEffect(() => {
     let mounted = true;
@@ -55,7 +61,10 @@ export default function NetworkTraffic() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Traffic</div>
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Traffic</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time packet counters, throughput volume, and session flows</p>
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="rounded px-3 py-2.5 animate-pulse" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
@@ -69,13 +78,25 @@ export default function NetworkTraffic() {
   }
 
   const bandwidthData = summary?.bandwidthData || [];
+  const activeConnections = summary?.activeConnections || [];
+
+  const filteredConnections = activeConnections.filter(c =>
+    !search || c.src?.includes(search) || c.dst?.includes(search) || c.state?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const pagedConnections = filteredConnections.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="space-y-4">
+      {/* Header (Checklist Section 10) */}
       <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Traffic</div>
-        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--status-healthy)' }}>
-          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--status-healthy)' }} />
+        <div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Traffic</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time packet counters, throughput volume, and session flows</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--color-success)' }}>
+          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
           MONITORING
         </div>
       </div>
@@ -83,7 +104,7 @@ export default function NetworkTraffic() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard title="RX Packets" value={(summary?.rxCount ?? 0).toLocaleString()} subtitle="Received" status="healthy" />
         <StatCard title="TX Packets" value={(summary?.txCount ?? 0).toLocaleString()} subtitle="Sent" />
-        <StatCard title="Active Connections" value={(summary?.activeConnections?.length ?? 0).toLocaleString()} subtitle="Recent sessions" />
+        <StatCard title="Active Connections" value={(activeConnections.length).toLocaleString()} subtitle="Recent sessions" />
         <StatCard title="Total Packets (24h)" value={(summary?.totalPackets ?? 0).toLocaleString()} subtitle="In & Out" />
       </div>
 
@@ -98,18 +119,48 @@ export default function NetworkTraffic() {
               <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
               <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="rx" name="RX" stroke="#22c55e" fill="rgba(34,197,94,0.08)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="tx" name="TX" stroke="#3b82f6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
+              <Area type="monotone" dataKey="rx" name="RX" stroke="#10B981" fill="rgba(16,185,129,0.08)" strokeWidth={1.5} />
+              <Area type="monotone" dataKey="tx" name="TX" stroke="#3B82F6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+      {/* Active Connections Table */}
+      <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-          <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Active Connections</span>
-          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{summary?.activeConnections?.length ?? 0} sessions</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Active Connections</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">{filteredConnections.length} sessions</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={13} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                placeholder="Filter sessions..."
+                className="text-xs rounded pl-7 pr-2 py-1 outline-none font-mono"
+                style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', width: 160 }}
+              />
+            </div>
+
+            <ExportMenu
+              filename="valaiaran-active-connections"
+              data={filteredConnections}
+              currentPageData={pagedConnections}
+              columns={[
+                { key: 'src', label: 'Source' },
+                { key: 'dst', label: 'Destination' },
+                { key: 'state', label: 'State' },
+                { key: 'bytes', label: 'Bytes' },
+              ]}
+            />
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -121,10 +172,10 @@ export default function NetworkTraffic() {
               </tr>
             </thead>
             <tbody className="font-mono text-xs">
-              {(summary?.activeConnections ?? []).length === 0 && (
+              {filteredConnections.length === 0 && (
                 <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={4}>No active connections</td></tr>
               )}
-              {(summary?.activeConnections ?? []).map(c => (
+              {pagedConnections.map(c => (
                 <tr
                   key={c.id}
                   className="transition-colors"
@@ -132,14 +183,14 @@ export default function NetworkTraffic() {
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <td className="px-3 py-2" style={{ color: 'var(--status-info)' }}>{c.src}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--color-primary)' }}>{c.src}</td>
                   <td className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>{c.dst}</td>
                   <td className="px-3 py-2">
                     <span
-                      className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm"
+                      className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]"
                       style={{
-                        background: c.state === 'ESTABLISHED' ? 'rgba(34,197,94,0.1)' : 'var(--bg-elevated)',
-                        color: c.state === 'ESTABLISHED' ? 'var(--status-healthy)' : 'var(--text-muted)',
+                        background: c.state === 'ESTABLISHED' ? 'rgba(16,185,129,0.12)' : 'var(--bg-elevated)',
+                        color: c.state === 'ESTABLISHED' ? 'var(--color-success)' : 'var(--text-muted)',
                       }}
                     >
                       {c.state}
@@ -151,6 +202,14 @@ export default function NetworkTraffic() {
             </tbody>
           </table>
         </div>
+
+        {/* 50 records/page Pagination (Checklist Section 12) */}
+        <Pagination
+          totalItems={filteredConnections.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   );

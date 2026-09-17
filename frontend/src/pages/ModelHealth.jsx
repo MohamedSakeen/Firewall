@@ -23,9 +23,10 @@ export default function ModelHealth() {
 
   return (
     <div className="space-y-4">
+      {/* Header (Checklist Section 10) */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Model Health</div>
-        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Model versioning, validation metrics, rollback</div>
+        <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Model Health</h1>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Model versioning, validation metrics, and rollback controls</p>
       </div>
 
       {/* Models Table */}

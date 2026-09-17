@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Clock, Unlock, Plus, X, CheckCircle } from 'lucide-react';
+import { Clock, Unlock, Plus, X, CheckCircle, Search } from 'lucide-react';
 import { fetchBlocked, unblockIp, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
+import Pagination from '../components/ui/Pagination';
+import ExportMenu from '../components/ui/ExportMenu';
 
 export default function IPSActions() {
   const [blockList, setBlockList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
   const [manualIp, setManualIp] = useState('');
   const [manualReason, setManualReason] = useState('Manual Block');
   const [autoBlock, setAutoBlock] = useState(true);
@@ -59,6 +64,19 @@ export default function IPSActions() {
     }
   };
 
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const filteredList = blockList.filter(b =>
+    b.ip?.includes(search) ||
+    b.reason?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const pagedList = filteredList.slice(startIndex, startIndex + pageSize);
+
   const inputStyle = {
     background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
     borderRadius: 'var(--radius)', fontSize: '13px', padding: '6px 10px', outline: 'none', width: '100%',
@@ -67,20 +85,24 @@ export default function IPSActions() {
   return (
     <div className="space-y-4">
       {notification && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium" style={{
-          background: notification.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${notification.type === 'success' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-          color: notification.type === 'success' ? '#4ade80' : '#f87171',
-        }}>
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium"
+          style={{
+            background: notification.type === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${notification.type === 'success' ? 'var(--color-success)' : 'var(--color-threat)'}`,
+            color: notification.type === 'success' ? 'var(--color-success)' : 'var(--color-threat)',
+          }}
+        >
           <CheckCircle size={14} />
           {notification.message}
         </div>
       )}
 
+      {/* Header (Checklist Section 10) */}
       <div className="flex justify-between items-center">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>IPS Actions</div>
-          <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Active IP bans & quarantine table</div>
+          <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">IPS Actions</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Active IP quarantine, ban enforcement, and threat mitigation</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -88,11 +110,36 @@ export default function IPSActions() {
             <button
               onClick={() => setAutoBlock(!autoBlock)}
               className="relative w-8 h-4 rounded-full transition-colors"
-              style={{ background: autoBlock ? 'var(--accent)' : 'var(--border-strong)' }}
+              style={{ background: autoBlock ? 'var(--color-primary)' : 'var(--border-strong)' }}
             >
               <span className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform" style={{ left: autoBlock ? 16 : 2 }} />
             </button>
           </div>
+
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={13} style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Search IP or reason..."
+              className="text-xs rounded pl-7 pr-2 py-1 outline-none font-mono"
+              style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', width: 170 }}
+            />
+          </div>
+
+          <ExportMenu
+            filename="valaiaran-ips-actions"
+            data={filteredList}
+            currentPageData={pagedList}
+            columns={[
+              { key: 'ip', label: 'IP Address' },
+              { key: 'reason', label: 'Reason' },
+              { key: 'blockedAt', label: 'Blocked At' },
+              { key: 'expires', label: 'Expires' },
+            ]}
+          />
+
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
@@ -103,10 +150,14 @@ export default function IPSActions() {
         </div>
       </div>
 
-      <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+      <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-          <span className="text-xs font-medium" style={{ color: 'var(--status-threat)' }}>Blocked & Quarantined ({blockList.length})</span>
-          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>Active ban table</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-threat)' }}>
+            Blocked & Quarantined ({filteredList.length})
+          </span>
+          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
+            Active ban table
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -119,32 +170,32 @@ export default function IPSActions() {
             </thead>
             <tbody className="text-sm">
               {loading && (
-                <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={5}>Loading...</td></tr>
+                <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>Loading...</td></tr>
               )}
-              {!loading && blockList.length === 0 && (
-                <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={5}>No IPs currently quarantined</td></tr>
+              {!loading && filteredList.length === 0 && (
+                <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>No IPs currently quarantined</td></tr>
               )}
-              {blockList.map((b, i) => (
+              {pagedList.map((b, i) => (
                 <tr
-                  key={i}
+                  key={startIndex + i}
                   className="transition-colors"
                   style={{ borderBottom: '1px solid var(--border-subtle)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--status-threat)' }}>{b.ip}</td>
+                  <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-threat)' }}>{b.ip}</td>
                   <td className="px-3 py-2 text-sm" style={{ color: 'var(--text-primary)' }}>{b.reason}</td>
                   <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{b.blockedAt}</td>
                   <td className="px-3 py-2">
                     <span className="inline-flex items-center text-xs font-mono gap-1" style={{ color: 'var(--text-secondary)' }}>
-                      <Clock size={11} style={{ color: 'var(--accent)' }} /> {b.expires}
+                      <Clock size={11} style={{ color: 'var(--color-primary)' }} /> {b.expires}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
                     <button
                       onClick={() => handleUnblock(b.ip)}
                       className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors"
-                      style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}
+                      style={{ background: 'var(--accent-muted)', color: 'var(--color-primary)' }}
                     >
                       <Unlock size={12} /> Unblock
                     </button>
@@ -154,14 +205,22 @@ export default function IPSActions() {
             </tbody>
           </table>
         </div>
+
+        {/* 50 records/page Pagination (Checklist Section 12) */}
+        <Pagination
+          totalItems={filteredList.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Manual Block Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-md rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
             <form onSubmit={handleManualBlock}>
-              <div className="px-4 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'rgba(239,68,68,0.04)' }}>
+              <div className="px-4 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-subtle)', background: 'rgba(239,68,68,0.06)' }}>
                 <span className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Manual IP Quarantine</span>
                 <button type="button" onClick={() => setModalOpen(false)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
               </div>

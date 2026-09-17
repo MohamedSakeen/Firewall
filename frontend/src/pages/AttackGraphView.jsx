@@ -22,9 +22,10 @@ export default function AttackGraphView() {
 
   return (
     <div className="space-y-4">
+      {/* Header (Checklist Section 10) */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Attack Graph</div>
-        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Attacker pathways, targeted assets, kill-chain stages</div>
+        <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Attack Graph</h1>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Attacker pathways, targeted assets, and kill-chain stages</p>
       </div>
 
       <div className="rounded p-4" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
