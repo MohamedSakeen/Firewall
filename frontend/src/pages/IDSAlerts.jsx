@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, AlertTriangle, ChevronRight, ShieldBan, CheckCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ChevronRight, ShieldBan, CheckCircle } from 'lucide-react';
 import { fetchAlerts, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
 
-const severityColors = {
-  CRITICAL: 'bg-red-900/50 text-red-400 border-red-800/40 font-bold',
-  HIGH: 'bg-orange-900/50 text-orange-400 border-orange-800/40 font-bold',
-  MEDIUM: 'bg-yellow-900/50 text-yellow-400 border-yellow-800/40 font-bold',
-  LOW: 'bg-blue-900/50 text-blue-400 border-blue-800/40 font-bold'
+const severityStyle = (sev) => {
+  switch (sev?.toUpperCase()) {
+    case 'CRITICAL': return { background: 'rgba(239,68,68,0.1)', color: '#f87171' };
+    case 'HIGH': return { background: 'rgba(245,158,11,0.1)', color: '#fbbf24' };
+    case 'MEDIUM': return { background: 'rgba(234,179,8,0.1)', color: '#facc15' };
+    case 'LOW': return { background: 'rgba(59,130,246,0.1)', color: '#60a5fa' };
+    default: return { background: 'rgba(107,114,128,0.1)', color: '#9ca3af' };
+  }
 };
 
 export default function IDSAlerts() {
@@ -40,8 +42,8 @@ export default function IDSAlerts() {
       setAlerts(prev => [newAlert, ...prev]);
     });
 
-    return () => { 
-      mounted = false; 
+    return () => {
+      mounted = false;
       clearInterval(interval);
       socket.off('alert');
     };
@@ -52,8 +54,8 @@ export default function IDSAlerts() {
     setBlockingStatus(true);
     try {
       await blockIp(selectedAlert.src_ip, selectedAlert.attack || 'IDS Alert Block');
-      setNotification({ type: 'success', message: `IP ${selectedAlert.src_ip} successfully quarantined!` });
-    } catch (e) {
+      setNotification({ type: 'success', message: `IP ${selectedAlert.src_ip} successfully quarantined` });
+    } catch {
       setNotification({ type: 'error', message: 'Failed to block IP' });
     } finally {
       setBlockingStatus(false);
@@ -68,120 +70,141 @@ export default function IDSAlerts() {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-3">
+      {/* Notification */}
       {notification && (
-        <div className={`p-4 rounded-xl border flex items-center gap-3 text-sm font-medium ${notification.type === 'success' ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300' : 'bg-red-950/80 border-red-500/50 text-red-300'}`}>
-          <CheckCircle size={18} />
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium"
+          style={{
+            background: notification.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `1px solid ${notification.type === 'success' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: notification.type === 'success' ? '#4ade80' : '#f87171',
+          }}
+        >
+          <CheckCircle size={14} />
           {notification.message}
         </div>
       )}
 
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <AlertTriangle className="text-yellow-400" /> Intrusion Detection (IDS) Alerts
-          </h1>
-          <p className="text-gray-400 text-sm">Real-time signature & heuristic anomaly detection events</p>
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>IDS Alerts</div>
+          <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Signature & heuristic anomaly detection events</div>
         </div>
-        <div className="flex space-x-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input 
-              type="text" 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search alerts by IP/type..." 
-              className="bg-gray-900 border border-gray-700 text-gray-300 text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-cyan-500 w-64" 
-            />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2" size={14} style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search alerts..."
+            className="text-xs rounded pl-7 pr-2 py-1"
+            style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', outline: 'none', width: 200 }}
+          />
         </div>
       </div>
 
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl shadow-lg flex-1 overflow-hidden flex flex-col">
+      {/* Main content */}
+      <div className="flex flex-1 gap-3 overflow-hidden">
+        {/* Alert table */}
+        <div className="flex-1 rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <div className="overflow-auto flex-1">
-            <table className="w-full text-left text-sm text-gray-300">
-              <thead className="text-xs text-gray-400 uppercase bg-gray-900/80 border-b border-gray-800 sticky top-0 font-semibold">
-                <tr>
-                  <th className="px-5 py-3">Time</th>
-                  <th className="px-5 py-3">Alert ID</th>
-                  <th className="px-5 py-3">Severity</th>
-                  <th className="px-5 py-3">Source IP</th>
-                  <th className="px-5 py-3">Signature</th>
-                  <th className="px-5 py-3">Threat Score</th>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="sticky top-0" style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)', zIndex: 1 }}>
+                  {['Time', 'Alert ID', 'Severity', 'Source IP', 'Signature', 'Score'].map(h => (
+                    <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td className="px-5 py-8 text-center text-gray-500" colSpan={6}>Loading security alerts...</td></tr>
+                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={6}>Loading alerts...</td></tr>
                 )}
                 {!loading && filteredAlerts.length === 0 && (
-                  <tr><td className="px-5 py-8 text-center text-gray-500" colSpan={6}>No alerts matching filter</td></tr>
+                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={6}>No alerts matching filter</td></tr>
                 )}
-                {filteredAlerts.slice().reverse().map((alert, i) => (
-                  <tr key={i} onClick={() => setSelectedAlert(alert)} className={`border-b border-gray-800/60 hover:bg-gray-800/40 cursor-pointer transition-colors ${selectedAlert === alert ? 'bg-cyan-950/30 border-l-4 border-l-cyan-500' : ''}`}>
-                    <td className="px-5 py-3 font-mono text-xs text-gray-400">{alert.timestamp?.split(' ')[1]?.split('.')[0] || alert.timestamp}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-cyan-400">ALT-{String(i + 1).padStart(3, '0')}</td>
-                    <td className="px-5 py-3">
-                      <span className={`px-2.5 py-1 rounded text-xs border ${severityColors[alert.severity?.toUpperCase()] || severityColors.MEDIUM}`}>{alert.severity?.toUpperCase()}</span>
-                    </td>
-                    <td className="px-5 py-3 font-mono text-xs text-red-400 font-bold">{alert.src_ip}</td>
-                    <td className="px-5 py-3 text-white font-medium">{alert.attack}</td>
-                    <td className="px-5 py-3 font-mono text-xs text-yellow-400 font-bold">{alert.score}</td>
-                  </tr>
-                ))}
+                {filteredAlerts.slice().reverse().map((alert, i) => {
+                  const sev = severityStyle(alert.severity);
+                  const isSelected = selectedAlert === alert;
+                  return (
+                    <tr
+                      key={i}
+                      onClick={() => setSelectedAlert(alert)}
+                      className="cursor-pointer transition-colors"
+                      style={{
+                        borderBottom: '1px solid var(--border-subtle)',
+                        background: isSelected ? 'var(--accent-muted)' : 'transparent',
+                        borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{alert.timestamp?.split(' ')[1]?.split('.')[0] || alert.timestamp}</td>
+                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--accent)' }}>ALT-{String(i + 1).padStart(3, '0')}</td>
+                      <td className="px-3 py-2">
+                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={sev}>{alert.severity?.toUpperCase()}</span>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--status-threat)' }}>{alert.src_ip}</td>
+                      <td className="px-3 py-2 text-sm" style={{ color: 'var(--text-primary)' }}>{alert.attack}</td>
+                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--status-warning)' }}>{alert.score}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        <AnimatePresence>
-          {selectedAlert && (
-            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 400, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="bg-[#0a0a0a] border border-gray-800 rounded-xl overflow-y-auto flex flex-col shrink-0">
-              <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 sticky top-0">
-                <h2 className="text-lg font-bold text-white flex items-center">
-                  <AlertTriangle size={18} className="mr-2 text-yellow-400" /> Alert Details
-                </h2>
-                <button onClick={() => setSelectedAlert(null)} className="text-gray-400 hover:text-white p-1"><ChevronRight size={20} /></button>
+        {/* Detail panel */}
+        {selectedAlert && (
+          <div
+            className="shrink-0 overflow-y-auto flex flex-col rounded"
+            style={{ width: 340, background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}
+          >
+            <div className="px-3 py-2 flex justify-between items-center sticky top-0" style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-heading)' }}>Alert Details</span>
+              <button onClick={() => setSelectedAlert(null)} className="p-0.5" style={{ color: 'var(--text-muted)' }}><ChevronRight size={16} /></button>
+            </div>
+            <div className="p-3 space-y-4 text-xs">
+              <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Matched Signature</span>
+                  <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={severityStyle(selectedAlert.severity)}>{selectedAlert.severity?.toUpperCase()}</span>
+                </div>
+                <div className="rounded p-2 text-sm font-medium" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}>{selectedAlert.attack}</div>
               </div>
-              <div className="p-5 space-y-6">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-gray-400 text-xs uppercase font-bold tracking-wider">Matched Signature</span>
-                    <span className={`px-2 py-0.5 rounded text-xs border ${severityColors[selectedAlert.severity?.toUpperCase()] || severityColors.MEDIUM}`}>{selectedAlert.severity?.toUpperCase()}</span>
-                  </div>
-                  <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm text-white font-medium">{selectedAlert.attack}</div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Source IP</span>
+                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--status-threat)' }}>{selectedAlert.src_ip}</div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-gray-400 text-xs uppercase font-bold tracking-wider block mb-1">Source IP</span>
-                    <div className="font-mono text-sm text-red-400 font-bold">{selectedAlert.src_ip}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-xs uppercase font-bold tracking-wider block mb-1">Threat Score</span>
-                    <div className="font-mono text-sm text-yellow-400 font-bold">{selectedAlert.score} / 100</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 text-xs uppercase font-bold tracking-wider block mb-1">Timestamp</span>
-                    <div className="font-mono text-sm text-gray-300">{selectedAlert.timestamp}</div>
-                  </div>
+                <div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Threat Score</span>
+                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--status-warning)' }}>{selectedAlert.score} / 100</div>
                 </div>
-
-                <div className="pt-4 border-t border-gray-800">
-                  <button 
-                    onClick={handleBlockIp}
-                    disabled={blockingStatus}
-                    className="w-full bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                  >
-                    <ShieldBan size={18} />
-                    {blockingStatus ? 'Applying Block...' : 'Quarantine Source IP'}
-                  </button>
+                <div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Timestamp</span>
+                  <div className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlert.timestamp}</div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+                <button
+                  onClick={handleBlockIp}
+                  disabled={blockingStatus}
+                  className="w-full py-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  style={{ background: 'var(--danger)', color: '#fff', opacity: blockingStatus ? 0.6 : 1 }}
+                >
+                  <ShieldBan size={14} />
+                  {blockingStatus ? 'Applying Block...' : 'Quarantine Source IP'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

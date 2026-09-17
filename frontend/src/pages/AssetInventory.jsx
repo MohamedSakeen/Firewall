@@ -1,169 +1,118 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Server, Plus, Shield, CheckCircle, RefreshCw, Cpu, Layers } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import axios from 'axios';
+
+const critStyle = (crit) => {
+  switch (crit) {
+    case 'CRITICAL': return { background: 'rgba(239,68,68,0.1)', color: '#f87171' };
+    case 'HIGH': return { background: 'rgba(245,158,11,0.1)', color: '#fbbf24' };
+    default: return { background: 'rgba(59,130,246,0.1)', color: '#60a5fa' };
+  }
+};
 
 export default function AssetInventory() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newAsset, setNewAsset] = useState({
-    ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT'
-  });
+  const [newAsset, setNewAsset] = useState({ ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT' });
 
-  useEffect(() => {
-    fetchAssets();
-  }, []);
+  useEffect(() => { fetchAssets(); }, []);
 
   const fetchAssets = async () => {
     setLoading(true);
-    try {
-      const res = await axios.get('http://localhost:5000/api/assets');
-      setAssets(res.data.assets || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    try { const res = await axios.get('http://localhost:5000/api/assets'); setAssets(res.data.assets || []); } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!newAsset.ip) return;
-    try {
-      await axios.post('http://localhost:5000/api/assets', newAsset);
-      setShowAddModal(false);
-      setNewAsset({ ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT' });
-      fetchAssets();
-    } catch (err) {
-      console.error(err);
-    }
+    try { await axios.post('http://localhost:5000/api/assets', newAsset); setShowAddModal(false); setNewAsset({ ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT' }); fetchAssets(); } catch (err) { console.error(err); }
+  };
+
+  const inputStyle = {
+    background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
+    borderRadius: 'var(--radius)', fontSize: '13px', padding: '5px 8px', outline: 'none', width: '100%',
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-            <Server className="text-cyan-400" /> Asset Intelligence & Inventory
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Host criticality mapping, network segmentation, and asset security posture profiles.
-          </p>
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Assets</div>
+          <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Host criticality, segmentation, security posture</div>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)} 
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm rounded-lg transition-colors flex items-center gap-2"
-        >
-          <Plus size={16} /> Register Asset
+        <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors" style={{ background: 'var(--accent)', color: '#fff' }}>
+          <Plus size={14} /> Register
         </button>
       </div>
 
-      {/* Assets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {assets.map((asset, idx) => (
-          <motion.div 
-            key={idx}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.05 }}
-            className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-5 backdrop-blur-md space-y-3 relative overflow-hidden"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-lg font-bold font-mono text-cyan-300">{asset.ip}</div>
-                <div className="text-xs text-gray-400">{asset.hostname}</div>
-              </div>
-              <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${
-                asset.criticality === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                asset.criticality === 'HIGH' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              }`}>
-                {asset.criticality}
-              </span>
-            </div>
-
-            <div className="space-y-1 text-xs border-t border-gray-800/80 pt-3">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Role:</span>
-                <span className="text-gray-200 font-medium">{asset.role}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Segment:</span>
-                <span className="text-purple-300 font-mono">{asset.segment}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Owner:</span>
-                <span className="text-gray-300">{asset.owner}</span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+      {/* Assets Table */}
+      <div className="rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
+                {['IP / Hostname', 'Role', 'Segment', 'Owner', 'Criticality'].map(h => (
+                  <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {loading && <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={5}>Loading...</td></tr>}
+              {!loading && assets.length === 0 && <tr><td className="px-3 py-6 text-center" style={{ color: 'var(--text-muted)' }} colSpan={5}>No assets registered</td></tr>}
+              {assets.map((asset, idx) => (
+                <tr key={idx} className="transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <td className="px-3 py-2">
+                    <div className="font-mono text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{asset.ip}</div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{asset.hostname}</div>
+                  </td>
+                  <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)' }}>{asset.role}</td>
+                  <td className="px-3 py-2 font-mono text-xs" style={{ color: '#818cf8' }}>{asset.segment}</td>
+                  <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)' }}>{asset.owner}</td>
+                  <td className="px-3 py-2"><span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={critStyle(asset.criticality)}>{asset.criticality}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md space-y-4"
-          >
-            <h2 className="text-lg font-bold text-white">Register Asset Profile</h2>
-            <form onSubmit={handleCreate} className="space-y-3">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-md rounded space-y-3 p-4" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
+            <div className="flex justify-between items-center pb-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>Register Asset</span>
+              <button onClick={() => setShowAddModal(false)} style={{ color: 'var(--text-muted)' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-2.5">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">IP Address</label>
-                <input 
-                  type="text" required placeholder="e.g. 10.0.0.50"
-                  value={newAsset.ip} onChange={(e) => setNewAsset({...newAsset, ip: e.target.value})}
-                  className="w-full bg-gray-950 border border-gray-700 text-white rounded px-3 py-1.5 text-sm font-mono"
-                />
+                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>IP Address</label>
+                <input type="text" required placeholder="e.g. 10.0.0.50" value={newAsset.ip} onChange={(e) => setNewAsset({...newAsset, ip: e.target.value})} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Hostname</label>
-                <input 
-                  type="text" placeholder="e.g. app-worker-01"
-                  value={newAsset.hostname} onChange={(e) => setNewAsset({...newAsset, hostname: e.target.value})}
-                  className="w-full bg-gray-950 border border-gray-700 text-white rounded px-3 py-1.5 text-sm"
-                />
+                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Hostname</label>
+                <input type="text" placeholder="e.g. app-worker-01" value={newAsset.hostname} onChange={(e) => setNewAsset({...newAsset, hostname: e.target.value})} style={inputStyle} />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Role</label>
-                <input 
-                  type="text" placeholder="e.g. API Gateway"
-                  value={newAsset.role} onChange={(e) => setNewAsset({...newAsset, role: e.target.value})}
-                  className="w-full bg-gray-950 border border-gray-700 text-white rounded px-3 py-1.5 text-sm"
-                />
+                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Role</label>
+                <input type="text" placeholder="e.g. API Gateway" value={newAsset.role} onChange={(e) => setNewAsset({...newAsset, role: e.target.value})} style={inputStyle} />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Criticality</label>
-                <select 
-                  value={newAsset.criticality} onChange={(e) => setNewAsset({...newAsset, criticality: e.target.value})}
-                  className="w-full bg-gray-950 border border-gray-700 text-white rounded px-3 py-1.5 text-sm"
-                >
-                  <option value="LOW">LOW</option>
-                  <option value="MEDIUM">MEDIUM</option>
-                  <option value="HIGH">HIGH</option>
-                  <option value="CRITICAL">CRITICAL</option>
+                <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Criticality</label>
+                <select value={newAsset.criticality} onChange={(e) => setNewAsset({...newAsset, criticality: e.target.value})} style={inputStyle}>
+                  <option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="HIGH">HIGH</option><option value="CRITICAL">CRITICAL</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-2 pt-3">
-                <button 
-                  type="button" onClick={() => setShowAddModal(false)}
-                  className="px-4 py-1.5 bg-gray-800 text-gray-300 text-sm font-medium rounded hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-1.5 bg-cyan-600 text-white text-sm font-medium rounded hover:bg-cyan-500"
-                >
-                  Save Asset
-                </button>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-3 py-1.5 text-xs font-medium rounded" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
+                <button type="submit" className="px-3 py-1.5 text-xs font-medium rounded" style={{ background: 'var(--accent)', color: '#fff' }}>Save</button>
               </div>
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>
