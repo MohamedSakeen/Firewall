@@ -6,6 +6,7 @@ Examples:
     python backend/manage.py create-user --role viewer --username analyst
     python backend/manage.py backup-db --output backend/data/backup.db
     python backend/manage.py prune-events --days 30
+    python backend/manage.py prune-logs --days 30
     python backend/manage.py stats
 
 Passwords are read from the terminal with getpass and are never accepted as
@@ -26,6 +27,7 @@ if BACKEND_DIR not in sys.path:
 from auth.db import get_db_path, init_db  # noqa: E402
 from auth.password import password_error  # noqa: E402
 from auth.store import UserExistsError, create_user, list_users  # noqa: E402
+from ops.retention import MAX_LOG_RETENTION_DAYS, prune_log_files  # noqa: E402
 from storage.events import (  # noqa: E402
     MAX_RETENTION_DAYS,
     event_counts_by_type,
@@ -126,6 +128,20 @@ def _prune_events(args):
     return 0
 
 
+def _prune_logs(args):
+    days = args.days
+    if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= MAX_LOG_RETENTION_DAYS:
+        print(f"days must be between 1 and {MAX_LOG_RETENTION_DAYS}", file=sys.stderr)
+        return 2
+    try:
+        removed = prune_log_files(days)
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"Removed {removed} log files older than {days} days")
+    return 0
+
+
 def _stats():
     init_db()
     counts = event_counts_by_type()
@@ -155,6 +171,9 @@ def build_parser():
     prune = subparsers.add_parser("prune-events", help="delete expired durable events")
     prune.add_argument("--days", required=True, type=int, help=f"retention window (1-{MAX_RETENTION_DAYS})")
 
+    prune_logs = subparsers.add_parser("prune-logs", help="delete expired generated log files")
+    prune_logs.add_argument("--days", required=True, type=int, help=f"retention window (1-{MAX_LOG_RETENTION_DAYS})")
+
     subparsers.add_parser("stats", help="show user and durable event counts")
 
     return parser
@@ -170,6 +189,8 @@ def main(argv=None):
         return _backup_db(args)
     if args.command == "prune-events":
         return _prune_events(args)
+    if args.command == "prune-logs":
+        return _prune_logs(args)
     if args.command == "stats":
         return _stats()
     return 2

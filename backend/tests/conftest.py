@@ -14,6 +14,13 @@ VIEWER_USERNAME = "labviewer"
 CSRF_HEADER = "X-CSRFToken"
 
 
+@pytest.fixture(autouse=True)
+def isolated_log_dir(monkeypatch, tmp_path):
+    """Keep generated logs and optional webhooks out of the repository."""
+    monkeypatch.setenv("FIREWALL_LOG_DIR", str(tmp_path / "logs"))
+    monkeypatch.delenv("FIREWALL_ALERT_WEBHOOK_URL", raising=False)
+
+
 @pytest.fixture
 def auth_env(monkeypatch, tmp_path):
     """Point auth at an isolated database and a deterministic test key."""

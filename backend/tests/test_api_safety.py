@@ -13,7 +13,7 @@ from engine.IPS.ban_tracker import get_ban
 def test_health_endpoint(app):
     response = app.test_client().get("/api/health")
     assert response.status_code == 200
-    assert "overall_status" in response.get_json()
+    assert response.get_json() == {"status": "ok"}
 
 
 def test_invalid_ip_rejected(auth_client, monkeypatch):

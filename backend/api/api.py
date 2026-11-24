@@ -19,6 +19,10 @@ from auth.api import auth_bp, limiter  # noqa: E402
 from auth.audit import audit_request  # noqa: E402
 from auth.db import init_db  # noqa: E402
 from auth.store import get_user_by_id  # noqa: E402
+from ops import alerts as ops_alerts  # noqa: E402
+from ops import metrics as ops_metrics  # noqa: E402
+from ops.logging_config import configure_logging  # noqa: E402
+from ops.retention import prune_log_files  # noqa: E402
 from storage.events import record_event as persist_event  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -64,13 +68,44 @@ def cookie_secure_enabled():
     return os.getenv("FIREWALL_COOKIE_SECURE", "false").strip().lower() in TRUTHY
 
 
+def _safe_alert(level, title, detail):
+    """Best-effort local notification; capture must continue on failure."""
+    try:
+        ops_alerts.queue_alert(level, title, detail)
+    except Exception:
+        logger.warning("could not queue %s ops alert", level)
+
+
+def _record_enforcement_failure(source):
+    ops_metrics.increment("enforcement_failures")
+    _safe_alert("error", "Enforcement failure", f"source={_alert_source(source)}")
+
+
+def _alert_source(source):
+    """Keep route names only; never place request data in alert details."""
+    allowed = {
+        "/api/block": "manual-block",
+        "/api/unblock": "manual-unblock",
+    }
+    if source in allowed:
+        return allowed[source]
+    if source == "/api/autonomy/rollback":
+        return "rollback-enforcement"
+    if isinstance(source, str) and source.startswith("/api/responses/approvals/"):
+        return "approval-enforcement"
+    return "api"
+
+
 def _persist_event(event_type, payload):
     """Best-effort durable write; capture must continue if storage fails."""
     try:
-        return persist_event(event_type, payload)
+        result = persist_event(event_type, payload)
     except Exception:
+        ops_metrics.increment("event_write_failures")
         logger.exception("could not persist %s event; capture continues", event_type)
         return None
+    ops_metrics.increment("event_writes")
+    return result
 
 
 def prune_expired_events(log=None):
@@ -161,7 +196,41 @@ def _apply_secure_headers(response):
     return response
 
 
+def _record_request_metrics(response):
+    """Aggregate request counts without recording paths or identities."""
+    ops_metrics.increment_http(response.status_code)
+    if not request.path.startswith("/api/") or request.method != "POST":
+        return response
+
+    path = request.path
+    raw_payload = response.get_json(silent=True) if response.is_json else None
+    payload = raw_payload if isinstance(raw_payload, dict) else {}
+    is_approve = path.startswith("/api/responses/approvals/") and path.endswith("/approve")
+    is_enforcement_path = path in {"/api/block", "/api/unblock", "/api/autonomy/rollback"} or is_approve
+
+    if path == "/api/block" and response.status_code == 200:
+        ops_metrics.increment("blocks")
+    elif path == "/api/unblock" and response.status_code == 200:
+        ops_metrics.increment("unblocks")
+    elif is_approve and response.status_code == 200 and payload.get("status") == "ENFORCED":
+        ops_metrics.increment("blocks")
+    elif (
+        path == "/api/autonomy/rollback"
+        and response.status_code == 200
+        and payload.get("status") == "SUCCESS"
+    ):
+        ops_metrics.increment("unblocks")
+
+    failed = response.status_code >= 500 and is_enforcement_path
+    if payload.get("warning"):
+        failed = True
+    if failed:
+        _record_enforcement_failure(path)
+    return response
+
+
 def create_app():
+    configure_logging()
     app = Flask(__name__)
     app.config["DEBUG"] = False
     app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
@@ -184,7 +253,7 @@ def create_app():
     from api.routes.events import events_bp
     from api.routes.autonomy import autonomy_bp
     from api.routes.posture import posture_bp
-    from engine.health.self_monitoring import global_self_monitoring
+    from api.routes.ops import ops_bp
 
     app.register_blueprint(alert_bp)
     app.register_blueprint(ips_bp)
@@ -201,6 +270,7 @@ def create_app():
     app.register_blueprint(events_bp)
     app.register_blueprint(autonomy_bp)
     app.register_blueprint(posture_bp)
+    app.register_blueprint(ops_bp)
     app.register_blueprint(auth_bp)
 
     _configure_auth(app)
@@ -208,10 +278,11 @@ def create_app():
 
     configure_autonomy_level()
     prune_expired_events(app.logger)
+    prune_log_files(log=app.logger)
 
     @app.route("/api/health", methods=["GET"])
     def health_check():
-        return jsonify(global_self_monitoring.run_health_check())
+        return jsonify({"status": "ok"})
 
     @app.before_request
     def enforce_api_auth():
@@ -237,6 +308,7 @@ def create_app():
 
     app.after_request(audit_request)
     app.after_request(_apply_secure_headers)
+    app.after_request(_record_request_metrics)
     socketio.init_app(app, cors_allowed_origins=origins)
     return app
 
@@ -274,7 +346,7 @@ def _run_sniffer():
             owner="UNKNOWN",
         )
 
-    def process_packet(packet):
+    def _process_packet(packet):
         if IP not in packet:
             return
 
@@ -284,6 +356,7 @@ def _run_sniffer():
         if not src_ip or not dst_ip:
             return
 
+        ops_metrics.increment("packets")
         normalized["size"] = len(bytes(packet))
         normalized["payload_size"] = len(bytes(packet.payload))
         flow = global_flow_tracker.process_packet(normalized)
@@ -314,6 +387,7 @@ def _run_sniffer():
         })
 
         for alert in alerts:
+            ops_metrics.increment("alerts")
             ban = get_ban(src_ip)
             action = "BLOCK" if ban else "ALERT"
             record, event = global_live_store.record_alert(
@@ -323,6 +397,13 @@ def _run_sniffer():
                 protocol=normalized.get("protocol"),
                 action=action,
             )
+            severity = str(record.get("severity") or "").upper()
+            if severity in {"HIGH", "CRITICAL"}:
+                _safe_alert(
+                    "critical" if severity == "CRITICAL" else "high",
+                    "IDS alert",
+                    f"severity={severity}",
+                )
             incident = global_event_correlator.process_alert(record)
             broadcast_alert(record)
             broadcast_security_event(event)
@@ -354,10 +435,21 @@ def _run_sniffer():
                     "threat_score": incident_data.get("threat_score"),
                 })
 
+    def process_packet(packet):
+        try:
+            _process_packet(packet)
+        except Exception:
+            ops_metrics.increment("sniffer_errors")
+            logger.exception("packet processing failed; capture continues")
+
+    ops_metrics.set_gauge("sniffer_active", 1)
     try:
         sniff(prn=process_packet, store=False)
     except Exception:
+        ops_metrics.increment("sniffer_errors")
         logger.exception("Packet capture unavailable; live traffic ingestion is disabled")
+    finally:
+        ops_metrics.set_gauge("sniffer_active", 0)
 
 
 def start_sniffer_if_enabled(app=None):
@@ -366,9 +458,11 @@ def start_sniffer_if_enabled(app=None):
     log = app.logger if app is not None else logger
     role = get_firewall_role()
     if role == "api":
+        ops_metrics.set_gauge("sniffer_active", 0)
         log.info("FIREWALL_ROLE=api; packet capture is disabled")
         return None
     if not sniffer_enabled():
+        ops_metrics.set_gauge("sniffer_active", 0)
         log.info("Packet sniffer disabled (set FIREWALL_ENABLE_SNIFFER=1 to enable)")
         return None
     with _sniffer_lock:
@@ -377,6 +471,7 @@ def start_sniffer_if_enabled(app=None):
             return _sniffer_thread
         _sniffer_thread = threading.Thread(target=_run_sniffer, name="packet-sniffer", daemon=True)
         _sniffer_thread.start()
+        ops_metrics.set_gauge("sniffer_active", 1)
     log.info("Packet sniffer enabled")
     return _sniffer_thread
 
@@ -388,8 +483,10 @@ def _wait_for_shutdown():
 
 def run_worker():
     """Start capture only, with no HTTP or WebSocket server in this process."""
+    configure_logging()
     init_db()
     prune_expired_events(logger)
+    prune_log_files(log=logger)
     thread = start_sniffer_if_enabled()
     if thread is None:
         logger.warning("Worker has no capture thread; check FIREWALL_ROLE and FIREWALL_ENABLE_SNIFFER")
