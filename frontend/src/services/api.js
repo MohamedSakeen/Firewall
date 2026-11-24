@@ -1,6 +1,69 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api' });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  withCredentials: true,
+});
+
+export const UNAUTHORIZED_EVENT = 'auth:unauthorized';
+
+const CSRF_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+let csrfToken = null;
+let csrfRequest = null;
+
+export async function fetchCsrfToken() {
+  if (csrfToken) return csrfToken;
+  if (!csrfRequest) {
+    csrfRequest = api.get('/auth/csrf')
+      .then((response) => {
+        const token = response.data?.csrf_token;
+        if (!token) throw new Error('CSRF token missing from response');
+        csrfToken = token;
+        return token;
+      })
+      .finally(() => { csrfRequest = null; });
+  }
+  return csrfRequest;
+}
+
+export function clearCsrfToken() {
+  csrfToken = null;
+}
+
+api.interceptors.request.use(async (config) => {
+  if (CSRF_METHODS.has((config.method || 'get').toLowerCase())) {
+    config.headers['X-CSRFToken'] = await fetchCsrfToken();
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Auth endpoints handle their own failures (login/me/logout). Other 401s
+    // notify the app, which routes to /login once; no redirect happens here.
+    if (error.response?.status === 401 && !String(error.config?.url || '').startsWith('/auth/')) {
+      clearCsrfToken();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    }
+    return Promise.reject(error);
+  },
+);
+
+export const login = async (credentials) => {
+  const { data } = await api.post('/auth/login', credentials);
+  return data?.user ?? data ?? null;
+};
+
+export const logout = async () => {
+  const { data } = await api.post('/auth/logout');
+  return data;
+};
+
+export const fetchCurrentUser = async () => {
+  const { data } = await api.get('/auth/me');
+  return data?.user ?? data ?? null;
+};
 
 export const fetchAlerts = () => api.get('/alerts').then(r => r.data);
 export const fetchRecentAlerts = () => api.get('/dashboard/alerts/recent').then(r => r.data);

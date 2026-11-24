@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { Plus, Search, X, Trash2 } from 'lucide-react';
 import { fetchFirewallRules, addFirewallRule, deleteFirewallRule } from '../services/api';
+import { selectIsViewer, selectRole } from '../store/slices/authSlice';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
+import RoleNotice from '../components/auth/RoleNotice';
 
 const display = (value) => value === null || value === undefined || value === '' ? '—' : value;
 
@@ -45,6 +48,8 @@ const normalizeRules = (data) => {
 };
 
 export default function Firewall() {
+  const role = useSelector(selectRole);
+  const isViewer = useSelector(selectIsViewer);
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -139,15 +144,19 @@ export default function Firewall() {
               { key: 'active', label: 'Status' },
             ]}
           />
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
-            style={{ background: 'var(--color-primary)', color: '#fff' }}
-          >
-            <Plus size={14} /> Add Rule
-          </button>
+          {!isViewer && (
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'var(--color-primary)', color: '#fff' }}
+            >
+              <Plus size={14} /> Add Rule
+            </button>
+          )}
         </div>
       </div>
+
+      <RoleNotice role={role} />
 
       {error && (
         <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
@@ -202,13 +211,15 @@ export default function Firewall() {
                     {rule.active === null ? '—' : rule.active ? 'ACTIVE' : 'INACTIVE'}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => handleDeleteRule(rule)}
-                      title="Delete rule"
-                      className="p-1 rounded transition-colors text-[var(--text-muted)] hover:text-[var(--color-threat)]"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {!isViewer && (
+                      <button
+                        onClick={() => handleDeleteRule(rule)}
+                        title="Delete rule"
+                        className="p-1 rounded transition-colors text-[var(--text-muted)] hover:text-[var(--color-threat)]"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -224,7 +235,7 @@ export default function Firewall() {
         />
       </div>
 
-      {modalOpen && (
+      {modalOpen && !isViewer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-md rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
             <form onSubmit={handleAddRule}>

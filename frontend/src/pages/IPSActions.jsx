@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { Clock, Unlock, Plus, X, CheckCircle, Search } from 'lucide-react';
 import { fetchBlocked, unblockIp, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
+import { selectIsViewer, selectRole } from '../store/slices/authSlice';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
+import RoleNotice from '../components/auth/RoleNotice';
 
 const parseStartTime = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -25,6 +28,8 @@ const banExpiry = (ban) => {
 };
 
 export default function IPSActions() {
+  const role = useSelector(selectRole);
+  const isViewer = useSelector(selectIsViewer);
   const [blockList, setBlockList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -131,6 +136,8 @@ export default function IPSActions() {
         </div>
       )}
 
+      <RoleNotice role={role} />
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">IPS Actions</h1>
@@ -162,13 +169,15 @@ export default function IPSActions() {
             disabled={filteredList.length === 0}
           />
 
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
-            style={{ background: 'var(--danger)', color: '#fff' }}
-          >
-            <Plus size={14} /> Block IP
-          </button>
+          {!isViewer && (
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'var(--danger)', color: '#fff' }}
+            >
+              <Plus size={14} /> Block IP
+            </button>
+          )}
         </div>
       </div>
 
@@ -211,14 +220,16 @@ export default function IPSActions() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => handleUnblock(b.ip)}
-                      disabled={!b.ip}
-                      className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors disabled:opacity-50"
-                      style={{ background: 'var(--accent-muted)', color: 'var(--color-primary)' }}
-                    >
-                      <Unlock size={12} /> Unblock
-                    </button>
+                    {!isViewer && (
+                      <button
+                        onClick={() => handleUnblock(b.ip)}
+                        disabled={!b.ip}
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors disabled:opacity-50"
+                        style={{ background: 'var(--accent-muted)', color: 'var(--color-primary)' }}
+                      >
+                        <Unlock size={12} /> Unblock
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -234,7 +245,7 @@ export default function IPSActions() {
         />
       </div>
 
-      {modalOpen && (
+      {modalOpen && !isViewer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-md rounded overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
             <form onSubmit={handleManualBlock}>
