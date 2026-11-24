@@ -70,7 +70,13 @@ export const fetchRecentAlerts = () => api.get('/dashboard/alerts/recent').then(
 export const fetchDashboardStats = () => api.get('/dashboard/stats').then(r => r.data);
 export const fetchBlocked = () => api.get('/blocked').then(r => r.data);
 export const blockIp = (payload) => api.post('/block', payload).then(r => r.data);
-export const unblockIp = (payload) => api.post('/unblock', typeof payload === 'string' ? { ip: payload } : payload).then(r => r.data);
+export const unblockIp = (payload) => {
+  const input = typeof payload === 'string' ? { ip: payload } : (payload || {});
+  const body = { ip: input.ip };
+  const reason = typeof input.reason === 'string' ? input.reason.trim() : '';
+  if (reason) body.reason = reason;
+  return api.post('/unblock', body).then(r => r.data);
+};
 export const fetchTraffic = () => api.get('/traffic').then(r => r.data);
 export const fetchTrafficSummary = () => api.get('/traffic/summary').then(r => r.data);
 export const fetchLiveTraffic = () => api.get('/traffic/live').then(r => r.data);
@@ -81,6 +87,9 @@ export const fetchRules = (type) => api.get(`/rules/${type}`).then(r => r.data);
 export const saveRule = (type, filename, data) => api.put(`/rules/${type}/${filename}`, data).then(r => r.data);
 export const fetchLogs = () => api.get('/logs').then(r => r.data);
 export const fetchHealth = () => api.get('/health').then(r => r.data);
+export const fetchOpsHealth = () => api.get('/ops/health').then(r => r.data);
+export const fetchOpsMetrics = () => api.get('/ops/metrics').then(r => r.data);
+export const fetchDetectionInfo = () => api.get('/alerts/detection').then(r => r.data);
 
 export const fetchSecurityEvents = (filters = {}) => api.get('/security-events', { params: filters }).then(r => r.data);
 export const fetchSecurityEvent = (eventId) => api.get(`/security-events/${eventId}`).then(r => r.data);
@@ -100,6 +109,25 @@ export const predictIncidentNextStage = (id, payload) => api.post(`/incidents/${
 export const simulatePolicy = (payload) => api.post('/simulation/simulate', payload).then(r => r.data);
 export const counterfactualAnalysis = (payload) => api.post('/simulation/counterfactual', payload).then(r => r.data);
 export const fetchResponseRecommendations = (payload) => api.post('/responses/recommendations', payload).then(r => r.data);
+const ACTION_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
+const decisionBody = (reason) => {
+  const cleaned = typeof reason === 'string' ? reason.trim() : '';
+  return cleaned ? { reason: cleaned } : {};
+};
+const approvalPath = (actionId) => {
+  const id = String(actionId ?? '').trim();
+  if (!ACTION_ID_PATTERN.test(id)) throw new Error('Invalid action ID');
+  return `/responses/approvals/${encodeURIComponent(id)}`;
+};
+
+export const fetchApprovals = () => api.get('/responses/approvals').then(r => r.data);
+export const approvePendingAction = (actionId, reason) =>
+  api.post(`${approvalPath(actionId)}/approve`, decisionBody(reason)).then(r => r.data);
+export const rejectPendingAction = (actionId, reason) =>
+  api.post(`${approvalPath(actionId)}/reject`, decisionBody(reason)).then(r => r.data);
+export const fetchResponseActions = (limit = 100) =>
+  api.get('/responses/actions', { params: { limit } }).then(r => r.data);
+
 export const fetchShadowRules = () => api.get('/responses/shadow').then(r => r.data);
 export const addShadowRule = (payload) => api.post('/responses/shadow', payload).then(r => r.data);
 export const promoteShadowRule = (payload) => api.post('/responses/shadow/promote', payload).then(r => r.data);

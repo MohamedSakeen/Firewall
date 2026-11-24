@@ -84,5 +84,6 @@ export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;
 export const selectRole = (state) => state.auth.user?.role ?? null;
 export const selectIsViewer = (state) => selectRole(state) === 'viewer';
+export const selectIsAdmin = (state) => selectRole(state) === 'admin';
 
 export default authSlice.reducer;

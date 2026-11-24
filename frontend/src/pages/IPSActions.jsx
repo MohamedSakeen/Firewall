@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Clock, Unlock, Plus, X, CheckCircle, Search } from 'lucide-react';
 import { fetchBlocked, unblockIp, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
-import { selectIsViewer, selectRole } from '../store/slices/authSlice';
+import { selectIsAdmin, selectIsViewer, selectRole } from '../store/slices/authSlice';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
 import RoleNotice from '../components/auth/RoleNotice';
+import PendingApprovals from '../components/response/PendingApprovals';
+import ResponseActionLog from '../components/response/ResponseActionLog';
 
 const parseStartTime = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -30,6 +32,7 @@ const banExpiry = (ban) => {
 export default function IPSActions() {
   const role = useSelector(selectRole);
   const isViewer = useSelector(selectIsViewer);
+  const isAdmin = useSelector(selectIsAdmin);
   const [blockList, setBlockList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,6 +44,16 @@ export default function IPSActions() {
   const [manualReason, setManualReason] = useState('');
   const [manualDuration, setManualDuration] = useState('');
   const [notification, setNotification] = useState(null);
+  const [unblockReasons, setUnblockReasons] = useState({});
+  const notificationTimerRef = useRef(null);
+
+  const showNotification = useCallback((type, message) => {
+    clearTimeout(notificationTimerRef.current);
+    setNotification({ type, message });
+    notificationTimerRef.current = setTimeout(() => setNotification(null), 3000);
+  }, []);
+
+  useEffect(() => () => clearTimeout(notificationTimerRef.current), []);
 
   const loadBlocked = useCallback(async () => {
     try {
@@ -68,14 +81,14 @@ export default function IPSActions() {
   }, [loadBlocked]);
 
   const handleUnblock = async (ip) => {
+    const reason = (unblockReasons[ip] || '').trim();
     try {
-      await unblockIp({ ip });
+      await unblockIp({ ip, reason });
       setBlockList(prev => prev.filter(b => b.ip !== ip));
-      setNotification({ type: 'success', message: `IP ${ip} unblocked successfully.` });
+      setUnblockReasons(prev => ({ ...prev, [ip]: '' }));
+      showNotification('success', `IP ${ip} unblocked successfully.`);
     } catch {
-      setNotification({ type: 'error', message: 'Failed to unblock IP' });
-    } finally {
-      setTimeout(() => setNotification(null), 3000);
+      showNotification('error', 'Failed to unblock IP. It may already be unblocked.');
     }
   };
 
@@ -89,11 +102,9 @@ export default function IPSActions() {
       setManualDuration('');
       setModalOpen(false);
       await loadBlocked();
-      setNotification({ type: 'success', message: `Block applied to ${manualIp.trim()}.` });
+      showNotification('success', `Block applied to ${manualIp.trim()}.`);
     } catch {
-      setNotification({ type: 'error', message: 'Failed to block target IP' });
-    } finally {
-      setTimeout(() => setNotification(null), 3000);
+      showNotification('error', 'Failed to block target IP');
     }
   };
 
@@ -221,14 +232,26 @@ export default function IPSActions() {
                   </td>
                   <td className="px-3 py-2 text-right">
                     {!isViewer && (
-                      <button
-                        onClick={() => handleUnblock(b.ip)}
-                        disabled={!b.ip}
-                        className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors disabled:opacity-50"
-                        style={{ background: 'var(--accent-muted)', color: 'var(--color-primary)' }}
-                      >
-                        <Unlock size={12} /> Unblock
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <input
+                          type="text"
+                          value={unblockReasons[b.ip] || ''}
+                          onChange={e => setUnblockReasons(prev => ({ ...prev, [b.ip]: e.target.value }))}
+                          maxLength={200}
+                          placeholder="Reason (optional)"
+                          aria-label={`Unblock reason for ${b.ip}`}
+                          className="text-[11px] rounded px-2 py-1 outline-none"
+                          style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)', width: 150 }}
+                        />
+                        <button
+                          onClick={() => handleUnblock(b.ip)}
+                          disabled={!b.ip}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded transition-colors disabled:opacity-50"
+                          style={{ background: 'var(--accent-muted)', color: 'var(--color-primary)' }}
+                        >
+                          <Unlock size={12} /> Unblock
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -243,6 +266,11 @@ export default function IPSActions() {
           pageSize={pageSize}
           onPageChange={setCurrentPage}
         />
+      </div>
+
+      <div className="space-y-4">
+        <PendingApprovals isAdmin={isAdmin} />
+        <ResponseActionLog />
       </div>
 
       {modalOpen && !isViewer && (
@@ -260,7 +288,7 @@ export default function IPSActions() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Reason / Note</label>
-                  <input type="text" value={manualReason} onChange={e => setManualReason(e.target.value)} placeholder="Enter reason" required style={inputStyle} />
+                  <input type="text" value={manualReason} onChange={e => setManualReason(e.target.value)} maxLength={200} placeholder="Enter reason" required style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Duration (seconds)</label>

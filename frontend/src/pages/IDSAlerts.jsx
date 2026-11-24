@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, ChevronRight, ShieldBan, CheckCircle } from 'lucide-react';
-import { fetchAlerts, blockIp } from '../services/api';
+import { fetchAlerts, fetchDetectionInfo, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
@@ -27,6 +27,18 @@ export default function IDSAlerts() {
   const pageSize = 50;
   const [blockingStatus, setBlockingStatus] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [detectionInfo, setDetectionInfo] = useState(null);
+  const notificationTimerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(notificationTimerRef.current), []);
+
+  useEffect(() => {
+    let active = true;
+    fetchDetectionInfo()
+      .then((data) => { if (active) setDetectionInfo(data?.rule_pack ?? null); })
+      .catch(() => { if (active) setDetectionInfo(null); });
+    return () => { active = false; };
+  }, []);
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -70,7 +82,8 @@ export default function IDSAlerts() {
       setNotification({ type: 'error', message: 'Failed to apply block' });
     } finally {
       setBlockingStatus(false);
-      setTimeout(() => setNotification(null), 4000);
+      clearTimeout(notificationTimerRef.current);
+      notificationTimerRef.current = setTimeout(() => setNotification(null), 4000);
     }
   };
 
@@ -117,6 +130,11 @@ export default function IDSAlerts() {
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">IDS Alerts</h1>
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Signature and heuristic anomaly detection events</p>
+          {detectionInfo && (
+            <div className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              Rule pack {detectionInfo.pack_version ?? 'unknown'} · schema {detectionInfo.schema_version ?? 'unknown'} · {detectionInfo.rule_count ?? '—'} rules · {detectionInfo.supported_rule_types?.length ?? '—'} supported rule types
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
