@@ -37,6 +37,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt
 
+      - name: Check backend syntax
+        run: PYTHONPATH=backend python -m compileall -q backend -x 'venv|__pycache__'
+
       - name: Run backend tests
         run: python -m pytest
 
@@ -47,3 +50,10 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: frontend
+
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Check whitespace
+        run: git diff --check

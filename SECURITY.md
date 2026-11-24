@@ -34,6 +34,13 @@ Please allow time for a fix before public disclosure.
 - Deployment mistakes where users expose the service publicly against the documented guidance
 - Third-party services not included in this repository
 
+## Known limits
+
+- There has been no formal security audit or production deployment of this build.
+- Automated enforcement is shadow-only by default. `auto` mode is bounded but has not been validated against real OS firewall rules on every supported platform.
+- Rate limits and deduplication caches are process-local, so they reset on restart and are not shared across API workers.
+- Packet capture is passive, opt-in, and requires appropriate privileges; it is not a full network firewall.
+
 ## Safe use
 
 - Run only on systems you own or are authorized to test.

@@ -62,6 +62,7 @@ All notable changes to this project are documented here.
 - Added CI for backend tests and frontend build.
 - Reduced `npm audit` findings to zero at the time of this change.
 - Added optional localhost-only Docker Compose, nginx, and systemd examples with capture left off by default.
+- Extended CI with backend syntax checks, frontend lint, and whitespace checks.
 
 ### Dashboard
 
@@ -73,6 +74,7 @@ All notable changes to this project are documented here.
 
 - Corrected claims about enterprise readiness, CI, CORS, debug mode, and packet capture.
 - Marked planning documents as aspirational rather than delivered functionality.
+- Documented known security limits in `SECURITY.md`.
 
 ## Earlier releases
 
