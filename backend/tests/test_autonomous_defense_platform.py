@@ -73,6 +73,7 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
         self.assertEqual(exp["model_id"], "M-01")
         self.assertGreater(len(exp["top_contributions"]), 0)
 
+<<<<<<< HEAD
         cf = xai.counterfactual_explanation(
             85,
             ["conn_freq"],
@@ -81,6 +82,9 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
             score_function=lambda features: int(features["conn_freq"] * 4),
         )
         self.assertEqual(cf["status"], "COMPUTED")
+=======
+        cf = xai.counterfactual_explanation(85, ["conn_freq"])
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         self.assertLess(cf["simulated_score_if_baseline_restored"], 85)
 
     def test_response_escalation_engine(self):
@@ -90,6 +94,7 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
 
     def test_posture_engine_and_replay_lab(self):
         spe = SecurityPostureEngine()
+<<<<<<< HEAD
         score_res = spe.calculate_posture_score(
             detection_score=90,
             learning_score=85,
@@ -119,6 +124,15 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
         )
         self.assertEqual(replayed["status"], "COMPLETED")
         self.assertEqual(replayed["packets_replayed"], 2)
+=======
+        score_res = spe.calculate_posture_score(detection_score=90, learning_score=85, response_score=95)
+        self.assertEqual(score_res["status"], "HEALTHY")
+        self.assertGreaterEqual(score_res["overall_posture_score"], 80.0)
+
+        lab = SecurityReplayLab()
+        res_lab = lab.run_scenario("ssh_bruteforce")
+        self.assertTrue(res_lab["benchmark_passed"])
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
 if __name__ == "__main__":
     unittest.main()

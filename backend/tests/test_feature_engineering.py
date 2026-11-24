@@ -13,7 +13,11 @@ class TestFeatureEngineering(unittest.TestCase):
         self.assertEqual(single_entropy, 0.0)
 
     def test_feature_extractor(self):
+<<<<<<< HEAD
         extractor = FeatureExtractor(context_builder=ContextBuilder(asset_roles={"10.0.0.10": "Web Server"}))
+=======
+        extractor = FeatureExtractor()
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         flow = {
             "flow_id": "TCP:10.0.0.1:1234<->10.0.0.10:80",
             "src_ip": "10.0.0.1",

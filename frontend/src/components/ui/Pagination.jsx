@@ -40,6 +40,10 @@ export default function Pagination({
         borderTop: '1px solid var(--border-subtle)',
       }}
     >
+<<<<<<< HEAD
+=======
+      {/* Context info: Showing 1–50 of 842 */}
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div className="flex items-center gap-3">
         <span className="font-mono text-[11px] text-[var(--text-muted)]">
           Showing <span className="text-[var(--text-primary)] font-medium">{startIndex}–{endIndex}</span> of <span className="text-[var(--text-primary)] font-medium">{totalItems}</span>

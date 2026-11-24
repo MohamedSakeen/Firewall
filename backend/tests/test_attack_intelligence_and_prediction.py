@@ -69,6 +69,7 @@ class TestAttackIntelligenceAndPrediction(unittest.TestCase):
 
     def test_deception_manager(self):
         dec = HoneypotDeceptionManager()
+<<<<<<< HEAD
         self.assertEqual(dec.list_decoys(), [])
 
         dec.add_decoy("10.0.0.99", port=21, decoy_type="DECOY_FTP")
@@ -89,5 +90,12 @@ class TestAttackIntelligenceAndPrediction(unittest.TestCase):
         self.assertFalse(no_hit)
         self.assertIsNone(no_decoy)
 
+=======
+        evt, hit = dec.evaluate_interaction("192.168.1.200", "10.0.0.99", destination_port=21)
+        self.assertTrue(hit)
+        self.assertEqual(evt["threat_score"], 95)
+        self.assertEqual(evt["decoy_type"], "DECOY_FTP")
+
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 if __name__ == "__main__":
     unittest.main()

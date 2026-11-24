@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
 import { Play } from 'lucide-react';
 import { simulatePolicy, counterfactualAnalysis, fetchIncidents } from '../services/api';
@@ -54,6 +55,26 @@ export default function PolicySimulatorView() {
       setCounterfactualResult(null);
       setError('Counterfactual analysis failed');
     }
+=======
+import { useState } from 'react';
+import axios from 'axios';
+import { Play } from 'lucide-react';
+
+export default function PolicySimulatorView() {
+  const [ip, setIp] = useState('10.0.0.99');
+  const [port, setPort] = useState('445');
+  const [action, setAction] = useState('BLOCK');
+  const [simulationResult, setSimulationResult] = useState(null);
+  const [counterfactualResult, setCounterfactualResult] = useState(null);
+
+  const handleSimulate = async (e) => {
+    e.preventDefault();
+    try { const res = await axios.post('http://localhost:5000/api/simulation/simulate', { ip, port: parseInt(port) || null, action }); setSimulationResult(res.data.simulation_result); } catch (err) { console.error('Simulation failed:', err); }
+  };
+
+  const handleCounterfactual = async () => {
+    try { const res = await axios.post('http://localhost:5000/api/simulation/counterfactual', { incident_id: 'INC-1001', attacker_ip: ip }); setCounterfactualResult(res.data); } catch (err) { console.error('Counterfactual failed:', err); }
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
   };
 
   const inputStyle = {
@@ -63,11 +84,16 @@ export default function PolicySimulatorView() {
 
   return (
     <div className="space-y-4">
+<<<<<<< HEAD
+=======
+      {/* Header (Checklist Section 10) */}
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div>
         <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Policy Simulator</h1>
         <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Simulate rule impacts and evaluate defensive what-if options</p>
       </div>
 
+<<<<<<< HEAD
       {error && (
         <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
           {error}
@@ -75,16 +101,28 @@ export default function PolicySimulatorView() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+=======
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Simulator */}
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Dry-Run Simulator</div>
           <form onSubmit={handleSimulate} className="space-y-2.5">
             <div>
               <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Target IP</label>
+<<<<<<< HEAD
               <input type="text" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="IP address" style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} required />
             </div>
             <div>
               <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Target Port</label>
               <input type="number" min="1" max="65535" value={port} onChange={(e) => setPort(e.target.value)} placeholder="Port" style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} required />
+=======
+              <input type="text" value={ip} onChange={(e) => setIp(e.target.value)} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Target Port</label>
+              <input type="text" value={port} onChange={(e) => setPort(e.target.value)} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             </div>
             <div>
               <label className="block text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>Action</label>
@@ -99,20 +137,31 @@ export default function PolicySimulatorView() {
 
           {simulationResult && (
             <div className="rounded p-2.5 space-y-1.5 text-xs" style={{ background: 'var(--bg-inset)', border: '1px solid rgba(59,130,246,0.15)' }}>
+<<<<<<< HEAD
               <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Flows Analyzed:</span><span className="font-mono" style={{ color: 'var(--text-primary)' }}>{display(simulationResult.flows_analyzed)}</span></div>
               <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Would Block:</span><span className="font-mono" style={{ color: 'var(--status-warning)' }}>{display(simulationResult.would_block)}</span></div>
               <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>False-Block Rate:</span><span className="font-mono" style={{ color: 'var(--status-healthy)' }}>{display(simulationResult.false_block_rate)}</span></div>
+=======
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Flows Analyzed:</span><span className="font-mono" style={{ color: 'var(--text-primary)' }}>{simulationResult.flows_analyzed}</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Would Block:</span><span className="font-mono" style={{ color: 'var(--status-warning)' }}>{simulationResult.would_block}</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>False-Block Rate:</span><span className="font-mono" style={{ color: 'var(--status-healthy)' }}>{simulationResult.false_block_rate}%</span></div>
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
               <div className="pt-1.5 flex justify-between items-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Recommendation:</span>
                 <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{
                   background: simulationResult.recommendation === 'SAFE' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                   color: simulationResult.recommendation === 'SAFE' ? '#4ade80' : '#f87171',
+<<<<<<< HEAD
                 }}>{display(simulationResult.recommendation)}</span>
+=======
+                }}>{simulationResult.recommendation}</span>
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
               </div>
             </div>
           )}
         </div>
 
+<<<<<<< HEAD
         <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Counterfactual Defense</div>
           <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Compare security vs availability trade-offs</div>
@@ -140,10 +189,19 @@ export default function PolicySimulatorView() {
             style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)' }}
           >
             Evaluate Options for {selectedIncident?.incident_id ?? 'selected incident'}
+=======
+        {/* Counterfactual */}
+        <div className="rounded p-3 space-y-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Counterfactual Defense</div>
+          <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Compare security vs availability trade-offs</div>
+          <button onClick={handleCounterfactual} className="w-full py-1.5 text-xs font-medium rounded transition-colors" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)' }}>
+            Evaluate Options for {ip}
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
           </button>
 
           {counterfactualResult && (
             <div className="space-y-1.5">
+<<<<<<< HEAD
               {(counterfactualResult.options || []).length === 0 && (
                 <div className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>No counterfactual options returned</div>
               )}
@@ -155,6 +213,16 @@ export default function PolicySimulatorView() {
                   </div>
                   <div className="mt-1" style={{ color: 'var(--text-secondary)' }}>Security: {display(opt.security_impact)}</div>
                   <div style={{ color: 'var(--text-muted)' }}>Availability: {display(opt.availability_impact)}</div>
+=======
+              {counterfactualResult.options.map((opt, i) => (
+                <div key={i} className="rounded p-2.5 text-xs" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="flex items-center justify-between font-medium">
+                    <span style={{ color: 'var(--text-heading)' }}>{opt.option}</span>
+                    <span className="font-mono" style={{ color: 'var(--accent)' }}>{opt.recommendation_score}/100</span>
+                  </div>
+                  <div className="mt-1" style={{ color: 'var(--text-secondary)' }}>Security: {opt.security_impact}</div>
+                  <div style={{ color: 'var(--text-muted)' }}>Availability: {opt.availability_impact}</div>
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
                 </div>
               ))}
             </div>

@@ -1,13 +1,24 @@
 import axios from 'axios';
 
+<<<<<<< HEAD
 const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api' });
 
+=======
+const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+
+// Core Firewall, IDS & IPS endpoints
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 export const fetchAlerts = () => api.get('/alerts').then(r => r.data);
 export const fetchRecentAlerts = () => api.get('/dashboard/alerts/recent').then(r => r.data);
 export const fetchDashboardStats = () => api.get('/dashboard/stats').then(r => r.data);
 export const fetchBlocked = () => api.get('/blocked').then(r => r.data);
+<<<<<<< HEAD
 export const blockIp = (payload) => api.post('/block', payload).then(r => r.data);
 export const unblockIp = (payload) => api.post('/unblock', typeof payload === 'string' ? { ip: payload } : payload).then(r => r.data);
+=======
+export const blockIp = (ip, reason = 'Manual Block') => api.post('/block', { ip, reason }).then(r => r.data);
+export const unblockIp = (ip) => api.post('/unblock', { ip }).then(r => r.data);
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 export const fetchTraffic = () => api.get('/traffic').then(r => r.data);
 export const fetchTrafficSummary = () => api.get('/traffic/summary').then(r => r.data);
 export const fetchLiveTraffic = () => api.get('/traffic/live').then(r => r.data);
@@ -17,6 +28,7 @@ export const deleteFirewallRule = (ruleData) => api.post('/firewall/rules/delete
 export const fetchRules = (type) => api.get(`/rules/${type}`).then(r => r.data);
 export const saveRule = (type, filename, data) => api.put(`/rules/${type}/${filename}`, data).then(r => r.data);
 export const fetchLogs = () => api.get('/logs').then(r => r.data);
+<<<<<<< HEAD
 export const fetchHealth = () => api.get('/health').then(r => r.data);
 
 export const fetchSecurityEvents = (filters = {}) => api.get('/security-events', { params: filters }).then(r => r.data);
@@ -59,5 +71,18 @@ export const fetchAssetRelationships = () => api.get('/assets/relationships').th
 export const registerAssetRelationship = (payload) => api.post('/assets/relationships', payload).then(r => r.data);
 
 export const queryThreatHunt = (payload) => api.post('/threat-hunt/query', payload).then(r => r.data);
+=======
+
+// Smart Self-Learning Intelligence endpoints
+export const fetchIncidents = () => api.get('/incidents').then(r => r.data);
+export const fetchIncidentGraph = (id) => api.get(`/incidents/${id}/graph`).then(r => r.data);
+export const fetchIncidentTimeline = (id) => api.get(`/incidents/${id}/timeline`).then(r => r.data);
+export const fetchBaselines = () => api.get('/learning/baselines').then(r => r.data);
+export const postFeedback = (feedbackData) => api.post('/learning/feedback', feedbackData).then(r => r.data);
+export const fetchModels = () => api.get('/learning/models').then(r => r.data);
+export const simulatePolicy = (payload) => api.post('/simulation/simulate', payload).then(r => r.data);
+export const counterfactualAnalysis = (payload) => api.post('/simulation/counterfactual', payload).then(r => r.data);
+export const fetchHealth = () => api.get('/health').then(r => r.data);
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
 export default api;

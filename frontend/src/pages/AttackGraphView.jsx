@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { fetchIncidentGraph } from '../services/api';
@@ -39,6 +40,20 @@ export default function AttackGraphView({ incidentId: incidentIdProp } = {}) {
     socket.on('incident.updated', onUpdated);
     return () => { clearTimeout(timer); socket.off('incident.updated', onUpdated); };
   }, [selectedId, loadGraph]);
+=======
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { ArrowRight } from 'lucide-react';
+
+export default function AttackGraphView() {
+  const [graphData, setGraphData] = useState(null);
+
+  useEffect(() => { fetchGraph(); }, []);
+
+  const fetchGraph = async () => {
+    try { const res = await axios.get('http://localhost:5000/api/incidents/INC-1001/graph'); setGraphData(res.data); } catch (err) { console.error('Error fetching graph:', err); }
+  };
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
   const nodeTypeStyle = (type) => {
     switch (type) {
@@ -51,11 +66,16 @@ export default function AttackGraphView({ incidentId: incidentIdProp } = {}) {
 
   return (
     <div className="space-y-4">
+<<<<<<< HEAD
+=======
+      {/* Header (Checklist Section 10) */}
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div>
         <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Attack Graph</h1>
         <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Attacker pathways, targeted assets, and kill-chain stages</p>
       </div>
 
+<<<<<<< HEAD
       {!selectedId && (
         <div className="rounded p-6 text-center text-sm" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
           No incident selected
@@ -110,6 +130,41 @@ export default function AttackGraphView({ incidentId: incidentIdProp } = {}) {
           </div>
         </div>
       )}
+=======
+      <div className="rounded p-4" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+        <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
+          Topology: {graphData?.incident_id || 'INC-1001'}
+        </div>
+
+        {/* Nodes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          {graphData?.nodes?.map((node) => (
+            <div key={node.id} className="rounded p-3" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+              <div className="flex items-center gap-2">
+                <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded-sm" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>{node.type}</span>
+              </div>
+              <div className="text-sm font-medium mt-1.5" style={nodeTypeStyle(node.type)}>{node.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Edges */}
+        <div className="pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Relationships</div>
+          <div className="space-y-1.5">
+            {graphData?.edges?.map((edge, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-xs rounded px-3 py-1.5 font-mono" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--status-threat)' }}>{edge.source}</span>
+                <ArrowRight size={12} style={{ color: 'var(--text-muted)' }} />
+                <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{ background: 'var(--accent-muted)', color: 'var(--accent)' }}>{edge.label}</span>
+                <ArrowRight size={12} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ color: 'var(--status-healthy)' }}>{edge.target}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
     </div>
   );
 }

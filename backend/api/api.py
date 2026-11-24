@@ -60,6 +60,7 @@ def create_app():
 
 def _run_sniffer():
     from scapy.all import sniff
+<<<<<<< HEAD
     from scapy.layers.inet import IP
     from api.services.live_store import global_live_store, packet_direction
     from api.services.websocket_service import (
@@ -134,6 +135,24 @@ def _run_sniffer():
             broadcast_security_event(event)
             if incident is not None:
                 broadcast_incident_updated(incident.to_dict())
+=======
+    from scapy.layers.inet import IP, TCP
+    from engine.packet.packet_normalizer import normalize_packet
+    from engine.firewall.engine import check_packet
+    from engine.IDS.detection_pipeline import run_detection_pipeline
+    from api.services.websocket_service import broadcast_packet
+
+    def process_packet(packet):
+        if IP in packet and TCP in packet:
+            normalized = normalize_packet(packet)
+            broadcast_packet(normalized)
+
+            src_ip = packet[IP].src
+            dst_port = packet[TCP].dport
+            firewall_result = check_packet(src_ip, dst_port)
+            print(f"{src_ip}:{packet[IP].dst}:{dst_port} -> {firewall_result}")
+            run_detection_pipeline(normalized, packet)
+>>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
     sniff(prn=process_packet, store=False)
 
