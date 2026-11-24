@@ -1,11 +1,11 @@
 # NetGuard AI — Smart Firewall, IDS & IPS Suite
 
-> **STATUS: local lab / demo only. Not production-ready.**
+> **STATUS: local lab / single-host project. Not production-ready.**
 >
 > This is a learning and demonstration project, not a deployable security product.
-> **There is no authentication, authorization, or user access control yet.** Adding
-> authentication is the final planned phase (see the planning documents in `docs/`).
-> Keep both servers bound to localhost and do not expose them to an untrusted network.
+> Login, roles, CSRF protection, rate limits, and audit logs are implemented, but a
+> formal security audit and production hardening are still missing. Keep both
+> servers bound to localhost and do not expose them to an untrusted network.
 >
 > Packet capture is **passive and opt-in**: the default launcher starts the API with
 > the sniffer disabled, so no Administrator/root privileges are needed. Any blocking
@@ -164,7 +164,7 @@ Firewall/
 
 - **Operating system:** Windows, Linux, or macOS. Nothing here is production-tested.
 - **Python:** 3.10 or newer (with `venv` and `pip`).
-- **Node.js:** 18 or newer (npm 9+).
+- **Node.js:** 20 or newer (npm 9+).
 - **Optional, only for packet capture:** On Windows install [Npcap](https://npcap.com/) with **WinPcap API compatibility mode** enabled. An installer is included at the repository root as `npcap-1.88.exe`. Raw capture needs Administrator/root privileges; the default launcher does not use it.
 
 ---
@@ -199,7 +199,19 @@ cd frontend
 npm ci        # uses the checked-in package-lock.json
 ```
 
-### 4. Packet capture driver (Windows only, optional)
+### 4. Create the first admin account
+
+There are no default credentials. From the repository root, run:
+
+```bash
+python backend/manage.py create-admin
+```
+
+Enter a username and a password of at least 12 characters when prompted. Use
+`python backend/manage.py create-user --role operator` or `--role viewer` to add
+other users. Passwords are hashed with Argon2id and are never written in plain text.
+
+### 5. Packet capture driver (Windows only, optional)
 
 Only needed if you explicitly enable the sniffer. Run `npcap-1.88.exe` as Administrator and keep the default *WinPcap API compatibility* option selected, then reboot if prompted.
 
@@ -227,9 +239,9 @@ start_all.bat
 .\start_all.ps1
 ```
 
-To opt into the legacy sniffer entry point, set `FIREWALL_ENABLE_SNIFFER=1`
-before launching. That path starts Scapy capture and may need Administrator/root
-and Npcap; it does not honor the host/port variables yet.
+To opt into packet capture, set `FIREWALL_ENABLE_SNIFFER=1` before launching.
+This starts Scapy capture and may need Administrator/root and Npcap. The backend
+entry point honors `FIREWALL_HOST` and `FIREWALL_PORT` either way.
 
 ### Option B — Start each service manually
 
@@ -256,6 +268,13 @@ Open the dashboard at **http://127.0.0.1:5173**. The API and WebSocket server ru
 > `127.0.0.1:5000` with debug off by default. Packet capture is opt-in; enable it
 > only with `FIREWALL_ENABLE_SNIFFER=1` and only on interfaces you are authorized
 > to monitor.
+
+### First login
+
+Open the dashboard and sign in with the admin account you created during setup.
+Roles are `admin` (users, rules, settings), `operator` (blocking and response
+actions), and `viewer` (read-only). Permissions are enforced on the server; the UI
+only hides controls for clarity.
 
 ### Option C — Standalone CLI sniffer demo
 
@@ -371,7 +390,8 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 - **Runtime logs:** `backend/logs/traffic.json` and `backend/logs/alerts.json`; consumed by the log service and API.
 - **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
 - **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.
-- **Environment variables:** Copy `.env.example` for the list of supported names (`FIREWALL_HOST`, `FIREWALL_PORT`, `FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `VITE_API_BASE_URL`, `VITE_SOCKET_URL`, `NETGUARD_LOCAL_NETWORKS`). Export them in your shell before launching; neither the launcher nor the backend auto-loads `.env`. The backend reads the `FIREWALL_*` values directly. No secrets are required today.
+- **Environment variables:** Copy `.env.example` for the list of supported names. Export them in your shell before launching; neither the launcher nor the backend auto-loads `.env`. The backend reads the `FIREWALL_*` values directly.
+- **Auth settings:** `FIREWALL_SECRET_KEY` should be a long random value for any persistent install. `FIREWALL_DB_PATH` sets the SQLite database location. `FIREWALL_COOKIE_SECURE=1` should only be used behind HTTPS. Create accounts with `python backend/manage.py`.
 - **Python environment:** `backend/.venv` is created by the launcher and is git-ignored.
 
 ---
@@ -412,7 +432,7 @@ npm run lint
 
 ## Security & Operational Notes
 
-- This project is designed for **local/lab use only**. The API has no authentication or access control yet. CORS is limited to the local dashboard origins by default, debug mode is off, and the backend binds to localhost by default. Do not expose any component to untrusted networks or the internet.
+- This project is designed for **local/lab, single-host use only**. The API now requires login, supports admin/operator/viewer roles, CSRF tokens, login rate limits, and audit logs. CORS is limited to the local dashboard origins by default, debug mode is off, and the backend binds to localhost by default. Do not expose any component to untrusted networks or the internet before a production security review.
 - Packet capture is passive and opt-in. Capture and OS-level blocking depend on platform, driver, and privileges; do not assume either works outside a lab. Run only on interfaces you are authorized to monitor.
 - Rule files and logs are stored locally; protect them appropriately and review any IP bans before using this on a shared machine.
 - A malicious or misconfigured rule set can block legitimate traffic. Use the policy simulator and kill switch when experimenting with response policies.

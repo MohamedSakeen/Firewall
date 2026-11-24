@@ -1,8 +1,9 @@
 # System Architecture Audit & Data Flow Documentation
 
 > **STATUS: planning document, not a statement of delivered functionality.**
-> This is a design review of a local lab project. There is no authentication,
-> completed security audit, CI/CD pipeline, or production deployment here.
+> This is a design review of a local lab project. It now has local authentication,
+> roles, CSRF protection, rate limits, and audit logs, but no completed security
+> audit or production deployment.
 
 ## 1. Subsystem Audit Matrix
 

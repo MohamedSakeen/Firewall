@@ -10,6 +10,13 @@ All notable changes to this project are documented here.
 - Removed hardcoded demo values from dashboard pages and added honest empty states.
 - Made launcher shutdown stop backend and frontend child processes cleanly.
 
+### Auth
+
+- Added local accounts with Argon2id password hashing and no default credentials.
+- Added admin, operator, and viewer roles enforced on the server.
+- Added login/logout sessions, CSRF tokens, login rate limits, and audit logs.
+- Added a CLI for creating admin, operator, and viewer accounts.
+
 ### Security
 
 - Bound the API to localhost by default and disabled debug mode.

@@ -38,5 +38,6 @@ Please allow time for a fix before public disclosure.
 
 - Run only on systems you own or are authorized to test.
 - Use an isolated virtual network for attack simulations.
-- Keep the service bound to localhost unless you have configured TLS, authentication, and a hardened reverse proxy.
+- Keep the service bound to localhost unless you have configured TLS and a hardened reverse proxy. Authentication is built in but must be set up with `python backend/manage.py create-admin`.
+- Set `FIREWALL_SECRET_KEY` for any persistent install and enable `FIREWALL_COOKIE_SECURE` only behind HTTPS.
 - Review every block rule and audit entry.

@@ -8,9 +8,9 @@
 ## Scope and limits
 
 This repository is a learning/demo environment for firewall, IDS, and IPS concepts.
-It is not an enterprise security product. There is **no authentication,
-authorization, or user access control**. Adding authentication is the final
-planned phase; until then, keep both servers bound to localhost.
+It is not an enterprise security product. It now has login, roles, CSRF
+protection, rate limits, and audit logs, but still needs a formal security audit
+and production hardening. Keep both servers bound to localhost.
 
 Packet capture is passive and opt-in. Both `start_all.py` and `python api/api.py`
 default to the sniffer disabled, localhost binding, and debug off, so no
@@ -31,6 +31,10 @@ plan files describe intended future work, not delivered functionality.
   `firewall`, `hunting`, `incidents`, `ips`, `learning`, `logs`, `posture`,
   `response`, `rules`, `simulation`, `traffic`.
 - `api/services/` — `live_store.py`, `log_service.py`, `websocket_service.py`.
+- `auth/` — SQLite-backed users and audit logs, Argon2id hashes, Flask-Login
+  sessions, CSRF protection, rate limits, and role/path checks.
+- `manage.py` — CLI to create admin, operator, and viewer accounts. No default
+  credentials exist.
 - `sniffer/` — Scapy capture helpers (used only when capture is enabled).
 - `engine/packet/` — packet normalization.
 - `engine/firewall/`, `engine/IDS/`, `engine/IPS/` — rule evaluation and the
@@ -68,9 +72,10 @@ There is no `src/data/mockData.js`, `src/hooks/`, or `dashboard/` directory.
 ## Local setup
 
 ```bash
-python start_all.py          # Windows wrappers: start_all.bat / start_all.ps1
-python -m pytest             # from the repository root
-python build_frontend.py     # runs npm run build in frontend/
+python backend/manage.py create-admin   # one-time, creates the first user
+python start_all.py                     # Windows wrappers: start_all.bat / start_all.ps1
+python -m pytest                        # from the repository root
+python build_frontend.py                # runs npm run build in frontend/
 ```
 
 `start_all.py` creates `backend/.venv`, installs the pinned requirements there,
@@ -79,5 +84,6 @@ and the Vite dev server on `127.0.0.1:5173`. Ctrl+C stops both children.
 
 Environment variable names are documented in `.env.example`. The frontend reads
 the `VITE_*` values, and the backend reads `FIREWALL_HOST`, `FIREWALL_PORT`,
-`FIREWALL_ALLOWED_ORIGINS`, and `FIREWALL_ENABLE_SNIFFER` directly. The launcher
-sets safe defaults in the child process environment.
+`FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `FIREWALL_SECRET_KEY`,
+`FIREWALL_DB_PATH`, and `FIREWALL_COOKIE_SECURE` directly. The launcher sets safe
+defaults in the child process environment.

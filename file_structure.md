@@ -7,7 +7,7 @@ roadmap. See `docs/` and the top-level `*_plan.md` files for planned work.
 Firewall/
 ├── backend/
 │   ├── api/
-│   │   ├── api.py                    # Flask app factory + legacy sniffer entry point
+│   │   ├── api.py                    # Flask app factory + local-lab server entry point
 │   │   ├── routes/                   # alert, assets, autonomy, events, firewall,
 │   │   │                             # hunting, incidents, ips, learning, logs,
 │   │   │                             # posture, response, rules, simulation, traffic
@@ -31,10 +31,13 @@ Firewall/
 │   │   ├── deception/                # honeypot listener/manager
 │   │   ├── forensics/                # replay and timeline
 │   │   └── rules/                    # JSON rule sets (firewall/, IDS/, IPS/, scoring/)
+│   ├── auth/                         # users, Argon2id hashes, sessions, CSRF, audit
 │   ├── sniffer/                      # optional Scapy capture helpers
 │   ├── logs/                         # generated runtime JSON logs (local only)
+│   ├── data/                         # SQLite DB ignored by git (accounts/audit)
 │   ├── tests/                        # pytest suites
 │   ├── main.py                       # standalone CLI sniffer/detection demo
+│   ├── manage.py                     # create admin/operator/viewer accounts
 │   ├── requirements.txt              # pinned Python dependencies
 │   └── .venv/                        # created by start_all.py; git-ignored
 ├── frontend/
@@ -76,5 +79,5 @@ Notes:
 
 - There is no `backend/config/`, `backend/utils/`, `backend/database/`,
   `frontend/src/hooks/`, `frontend/src/data/mockData.js`, or `frontend/dashboard/`.
-- No authentication, user accounts, roles, sessions, or permissions are implemented.
+- Authentication uses local accounts with Argon2id hashes. Roles are admin, operator, and viewer; permissions are enforced on the server.
 - Basic CI runs tests and the frontend build; there are no production deployment manifests.
