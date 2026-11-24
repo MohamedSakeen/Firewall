@@ -38,6 +38,7 @@ All notable changes to this project are documented here.
 - Pinned backend dependencies and refreshed the frontend lockfile.
 - Added CI for backend tests and frontend build.
 - Reduced `npm audit` findings to zero at the time of this change.
+- Added optional localhost-only Docker Compose, nginx, and systemd examples with capture left off by default.
 
 ### Documentation
 

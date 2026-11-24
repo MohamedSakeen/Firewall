@@ -56,7 +56,9 @@ plan files describe intended future work, not delivered functionality.
   never globally.
 
 There is no `backend/config/`, `backend/utils/`, or `backend/database/` directory.
-Configuration is mostly environment variables plus JSON rule/log files.
+Configuration is mostly environment variables plus JSON rule files and SQLite data.
+Optional localhost-only Docker and systemd examples live in `docker-compose.yml`,
+`Dockerfile.backend`, `Dockerfile.frontend`, `docker/`, and `deploy/systemd/`.
 
 ## Frontend (`frontend/`)
 

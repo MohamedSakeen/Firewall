@@ -70,6 +70,11 @@ Firewall/
 ├── start_all.py                      # cross-platform local-lab launcher
 ├── start_all.bat / start_all.ps1      # thin wrappers around start_all.py
 ├── build_frontend.py                 # thin wrapper around npm run build
+├── Dockerfile.backend                # optional non-root backend image
+├── Dockerfile.frontend               # optional multi-stage frontend image
+├── docker-compose.yml                # localhost-only Compose setup
+├── docker/                           # nginx config and Docker notes
+├── deploy/systemd/                   # optional API and capture worker units
 ├── .github/workflows/ci.yml          # backend tests + frontend build
 ├── npcap-1.88.exe                    # optional Windows capture driver installer
 ├── PROJECT_MEMORY.md

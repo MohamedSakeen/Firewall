@@ -159,6 +159,11 @@ Firewall/
 ├── start_all.bat                   # Windows batch launcher
 ├── start_all.ps1                   # PowerShell launcher (run as Administrator)
 ├── build_frontend.py               # Frontend build automation helper
+├── Dockerfile.backend              # Optional non-root backend image
+├── Dockerfile.frontend             # Optional multi-stage frontend image
+├── docker-compose.yml              # Localhost-only Compose setup
+├── docker/                         # nginx config and Docker notes
+├── deploy/systemd/                 # Optional API and capture worker units
 ├── npcap-1.88.exe                  # Npcap installer for Windows packet capture
 ├── PROJECT_MEMORY.md               # Detailed architecture/project reference
 └── README.md                       # This document
@@ -225,7 +230,7 @@ Only needed if you explicitly enable the sniffer. Run `npcap-1.88.exe` as Admini
 
 ## Running the Application
 
-There are three ways to start the suite in the local lab.
+There are several ways to start the suite in the local lab.
 
 ### Option A — One-command launcher (recommended)
 
@@ -248,6 +253,21 @@ start_all.bat
 To opt into packet capture, set `FIREWALL_ENABLE_SNIFFER=1` before launching.
 This starts Scapy capture and may need Administrator/root and Npcap. The backend
 entry point honors `FIREWALL_HOST` and `FIREWALL_PORT` either way.
+
+### Docker quickstart (optional)
+
+Docker files are included for a localhost-only single-host setup. Create an admin
+first, then start the services:
+
+```bash
+docker compose run --rm backend python manage.py create-admin
+docker compose up -d
+```
+
+Open **http://127.0.0.1:8080**. The API is published only on `127.0.0.1:5000`,
+and packet capture stays off by default. See `docker/README.md` for details and
+`deploy/systemd/` for optional service units. These files are not a production
+deployment or security audit.
 
 ### Option B — Start each service manually
 
