@@ -1,0 +1,3 @@
+# Runtime SQLite database (contains password hashes and audit records).
+*.db
+*.db-*

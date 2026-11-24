@@ -3,20 +3,11 @@ import json
 import pytest
 
 from api import api as api_module
-from api.api import create_app, get_allowed_origins, socketio
+from api.api import get_allowed_origins, socketio
 from api.routes import firewall as firewall_mod
 from api.routes import ips as ips_mod
 from api.routes import rules as rules_mod
 from engine.IPS.ban_tracker import get_ban
-
-
-@pytest.fixture
-def app(monkeypatch):
-    monkeypatch.delenv("FIREWALL_ALLOWED_ORIGINS", raising=False)
-    monkeypatch.delenv("FIREWALL_ENABLE_SNIFFER", raising=False)
-    application = create_app()
-    application.config["TESTING"] = True
-    return application
 
 
 def test_health_endpoint(app):
@@ -25,12 +16,12 @@ def test_health_endpoint(app):
     assert "overall_status" in response.get_json()
 
 
-def test_invalid_ip_rejected(app, monkeypatch):
+def test_invalid_ip_rejected(auth_client, monkeypatch):
     def unexpected_block(ip):
         pytest.fail("enforcement must not run for invalid IPs")
 
     monkeypatch.setattr(ips_mod, "block_ip", unexpected_block)
-    client = app.test_client()
+    client = auth_client
     for value in ("192.168.1.0/24", "example.com", "", "  ", True, 12345):
         response = client.post(
             "/api/block", json={"ip": value, "reason": "test", "duration": 60}
@@ -40,9 +31,9 @@ def test_invalid_ip_rejected(app, monkeypatch):
         assert response.status_code == 400
 
 
-def test_block_requires_valid_reason_and_duration(app, monkeypatch):
+def test_block_requires_valid_reason_and_duration(auth_client, monkeypatch):
     monkeypatch.setattr(ips_mod, "block_ip", lambda ip: pytest.fail("must not enforce"))
-    client = app.test_client()
+    client = auth_client
     cases = [
         {"ip": "192.0.2.10", "reason": "", "duration": 60},
         {"ip": "192.0.2.10", "reason": "x" * 201, "duration": 60},
@@ -54,13 +45,13 @@ def test_block_requires_valid_reason_and_duration(app, monkeypatch):
         assert client.post("/api/block", json=payload).status_code == 400
 
 
-def test_block_reports_enforcement_failure(app, monkeypatch):
+def test_block_reports_enforcement_failure(auth_client, monkeypatch):
     monkeypatch.setattr(
         ips_mod,
         "block_ip",
         lambda ip: {"ok": False, "platform": "linux", "message": "iptables is not installed"},
     )
-    response = app.test_client().post(
+    response = auth_client.post(
         "/api/block", json={"ip": "192.0.2.11", "reason": "test", "duration": 60}
     )
     assert response.status_code >= 500
@@ -68,13 +59,13 @@ def test_block_reports_enforcement_failure(app, monkeypatch):
     assert get_ban("192.0.2.11") is None
 
 
-def test_successful_block_uses_enforcement_result(app, monkeypatch):
+def test_successful_block_uses_enforcement_result(auth_client, monkeypatch):
     monkeypatch.setattr(
         ips_mod,
         "block_ip",
         lambda ip: {"ok": True, "platform": "win32", "message": "blocked"},
     )
-    response = app.test_client().post(
+    response = auth_client.post(
         "/api/block", json={"ip": "192.0.2.12", "reason": "test", "duration": 60}
     )
     assert response.status_code == 200
@@ -82,9 +73,9 @@ def test_successful_block_uses_enforcement_result(app, monkeypatch):
     assert get_ban("192.0.2.12") is not None
 
 
-def test_firewall_rules_validation_and_atomic_write(app, monkeypatch, tmp_path):
+def test_firewall_rules_validation_and_atomic_write(auth_client, monkeypatch, tmp_path):
     monkeypatch.setattr(firewall_mod, "BASE", tmp_path)
-    client = app.test_client()
+    client = auth_client
     assert client.post("/api/firewall/rules", json={"src": "example.com"}).status_code == 400
     assert client.post("/api/firewall/rules", json={"port": 70000}).status_code == 400
     assert client.post("/api/firewall/rules", json={"port": "abc"}).status_code == 400
@@ -100,7 +91,7 @@ def test_firewall_rules_validation_and_atomic_write(app, monkeypatch, tmp_path):
     assert sorted(tmp_path.glob(".rules.json.*.tmp")) == []
 
 
-def test_rule_filename_traversal_rejected(app, monkeypatch, tmp_path):
+def test_rule_filename_traversal_rejected(app, auth_client, monkeypatch, tmp_path):
     monkeypatch.setattr(rules_mod, "BASE", tmp_path)
     names = [
         "../evil.json",
@@ -116,13 +107,13 @@ def test_rule_filename_traversal_rejected(app, monkeypatch, tmp_path):
             response = rules_mod.save_rule("firewall", name)
             status = response[1] if isinstance(response, tuple) else response.status_code
             assert status == 400
-    response = app.test_client().put(
+    response = auth_client.put(
         "/api/rules/firewall/%2e%2e%2f%2e%2e%2fevil.json", json={}
     )
     assert response.status_code in (400, 404)
 
 
-def test_unknown_rule_keys_rejected(app, monkeypatch, tmp_path):
+def test_unknown_rule_keys_rejected(auth_client, monkeypatch, tmp_path):
     rules_dir = tmp_path / "rules"
     firewall_dir = rules_dir / "firewall"
     firewall_dir.mkdir(parents=True)
@@ -131,7 +122,7 @@ def test_unknown_rule_keys_rejected(app, monkeypatch, tmp_path):
     target.write_text(json.dumps(original), encoding="utf-8")
     monkeypatch.setattr(rules_mod, "BASE", rules_dir)
 
-    client = app.test_client()
+    client = auth_client
     response = client.put(
         "/api/rules/firewall/rules.json",
         json={"blocked_ips": [], "blocked_ports": [], "injected": {"x": 1}},
@@ -147,7 +138,7 @@ def test_unknown_rule_keys_rejected(app, monkeypatch, tmp_path):
     assert json.loads(target.read_text(encoding="utf-8"))["blocked_ips"] == ["192.0.2.2"]
 
 
-def test_blocked_endpoint_cleans_expired_bans(app, monkeypatch):
+def test_blocked_endpoint_cleans_expired_bans(auth_client, monkeypatch):
     cleaned = []
     monkeypatch.setattr(ips_mod, "cleanup_expired_bans", lambda: ["192.0.2.20"])
     monkeypatch.setattr(
@@ -155,12 +146,12 @@ def test_blocked_endpoint_cleans_expired_bans(app, monkeypatch):
         "record_unblock",
         lambda ip: cleaned.append(ip),
     )
-    response = app.test_client().get("/api/blocked")
+    response = auth_client.get("/api/blocked")
     assert response.status_code == 200
     assert cleaned == ["192.0.2.20"]
 
 
-def test_unblock_route_removes_ban_and_reports_enforcement(app, monkeypatch):
+def test_unblock_route_removes_ban_and_reports_enforcement(auth_client, monkeypatch):
     removed = []
     monkeypatch.setattr(
         ips_mod,
@@ -168,7 +159,7 @@ def test_unblock_route_removes_ban_and_reports_enforcement(app, monkeypatch):
         lambda ip: removed.append(ip) or {"ok": True, "platform": "win32", "message": "unblocked"},
     )
     monkeypatch.setattr(ips_mod.global_live_store, "record_unblock", lambda ip: None)
-    response = app.test_client().post("/api/unblock", json={"ip": "192.0.2.21"})
+    response = auth_client.post("/api/unblock", json={"ip": "192.0.2.21"})
     assert response.status_code == 200
     assert response.get_json()["enforcement"] == "os"
     assert removed == ["192.0.2.21"]

@@ -1,19 +1,35 @@
 import logging
 import os
+import secrets
 import sys
 import threading
 from pathlib import Path
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_login import LoginManager, current_user
 from flask_socketio import SocketIO
+from flask_wtf.csrf import CSRFProtect
 
 BACKEND_DIR = str(Path(__file__).resolve().parent.parent)
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+from auth.api import auth_bp, limiter  # noqa: E402
+from auth.audit import audit_request  # noqa: E402
+from auth.db import init_db  # noqa: E402
+from auth.store import get_user_by_id  # noqa: E402
+
 logger = logging.getLogger(__name__)
 DEFAULT_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+READ_METHODS = {"GET", "HEAD"}
+ADMIN_PATH_PREFIXES = (
+    "/api/rules/",
+    "/api/firewall/rules",
+    "/api/autonomy/",
+    "/api/auth/users",
+)
+TRUTHY = {"1", "true", "yes", "on"}
 
 
 def get_allowed_origins():
@@ -28,9 +44,63 @@ def get_allowed_origins():
 
 
 def sniffer_enabled():
-    return os.getenv("FIREWALL_ENABLE_SNIFFER", "false").strip().lower() in {
-        "1", "true", "yes", "on"
-    }
+    return os.getenv("FIREWALL_ENABLE_SNIFFER", "false").strip().lower() in TRUTHY
+
+
+def cookie_secure_enabled():
+    return os.getenv("FIREWALL_COOKIE_SECURE", "false").strip().lower() in TRUTHY
+
+
+def _is_public_api_path(path):
+    return path == "/api/health" or path.startswith("/api/auth/")
+
+
+def _is_admin_api_path(path):
+    return any(
+        path == prefix or path.startswith(prefix.rstrip("/") + "/")
+        for prefix in ADMIN_PATH_PREFIXES
+    )
+
+
+def _configure_auth(app):
+    secret = os.getenv("FIREWALL_SECRET_KEY", "").strip()
+    if secret:
+        app.config["SECRET_KEY"] = secret
+    else:
+        app.config["SECRET_KEY"] = secrets.token_hex(32)
+        app.logger.warning(
+            "FIREWALL_SECRET_KEY is not set; using an ephemeral session key. "
+            "Sessions will be invalidated when the process restarts."
+        )
+
+    secure_cookie = cookie_secure_enabled()
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Strict",
+        SESSION_COOKIE_SECURE=secure_cookie,
+        REMEMBER_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_SAMESITE="Strict",
+        REMEMBER_COOKIE_SECURE=secure_cookie,
+        WTF_CSRF_TIME_LIMIT=3600,
+    )
+
+    init_db()
+    CSRFProtect(app)
+
+    login_manager = LoginManager()
+    login_manager.session_protection = "strong"
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        user = get_user_by_id(user_id)
+        return user if user is not None and user.is_active else None
+
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        return jsonify({"error": "authentication required"}), 401
+
+    login_manager.init_app(app)
+    limiter.init_app(app)
 
 
 socketio = SocketIO(cors_allowed_origins=get_allowed_origins())
@@ -57,7 +127,7 @@ def create_app():
     app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
     origins = get_allowed_origins()
     app.config["CORS_ORIGINS"] = origins
-    CORS(app, origins=origins)
+    CORS(app, origins=origins, supports_credentials=True)
 
     from api.routes.alert import alert_bp
     from api.routes.ips import ips_bp
@@ -91,11 +161,37 @@ def create_app():
     app.register_blueprint(events_bp)
     app.register_blueprint(autonomy_bp)
     app.register_blueprint(posture_bp)
+    app.register_blueprint(auth_bp)
+
+    _configure_auth(app)
 
     @app.route("/api/health", methods=["GET"])
     def health_check():
         return jsonify(global_self_monitoring.run_health_check())
 
+    @app.before_request
+    def enforce_api_auth():
+        path = request.path
+        if not path.startswith("/api/") or _is_public_api_path(path):
+            return None
+        # Let browser CORS preflights through; every actual request needs login.
+        if request.method == "OPTIONS":
+            return None
+        if not current_user.is_authenticated:
+            return jsonify({"error": "authentication required"}), 401
+        if request.method not in READ_METHODS and current_user.role not in {
+            "operator", "admin"
+        }:
+            return jsonify({"error": "forbidden"}), 403
+        if _is_admin_api_path(path) and current_user.role != "admin":
+            return jsonify({"error": "forbidden"}), 403
+        return None
+
+    @app.errorhandler(429)
+    def too_many_requests(error):
+        return jsonify({"error": "too many requests"}), 429
+
+    app.after_request(audit_request)
     app.after_request(_apply_secure_headers)
     socketio.init_app(app, cors_allowed_origins=origins)
     return app
