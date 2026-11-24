@@ -1,14 +1,22 @@
-<<<<<<< HEAD
 import ipaddress
+import logging
+import math
 import time
 
 from flask import Blueprint, jsonify, request
 
 from api.services.live_store import global_live_store
-from engine.IPS.ban_tracker import add_ban, get_ban, remove_ban
+from engine.IPS.ban_tracker import add_ban, get_ban
+from engine.IPS.unblock_manager import cleanup_expired_bans
+from engine.IPS.unblock_manager import unblock_ip as remove_block
 from engine.firewall.blocker import block_ip
 
 ips_bp = Blueprint("ips", __name__, url_prefix="/api")
+
+logger = logging.getLogger(__name__)
+MIN_DURATION = 1
+MAX_DURATION = 7 * 24 * 60 * 60
+MAX_REASON_LENGTH = 200
 
 
 def _valid_ip(value):
@@ -18,26 +26,13 @@ def _valid_ip(value):
         return str(ipaddress.ip_address(value.strip()))
     except ValueError:
         return None
-=======
-import re
-from datetime import datetime
-from pathlib import Path
-
-from flask import Blueprint, jsonify, request
-
-from api.services.log_service import read_text_log
-from engine.IPS.ban_tracker import banned_ips, add_ban, remove_ban
-
-ips_bp = Blueprint("ips", __name__, url_prefix="/api")
-
-BLOCK_PATTERN = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+) - Blocked IP: (\S+)")
-LOG_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
 
 @ips_bp.route("/blocked")
 def get_blocked():
-<<<<<<< HEAD
+    for ip in cleanup_expired_bans():
+        global_live_store.record_unblock(ip)
+
     now = time.time()
     blocked = []
 
@@ -60,119 +55,71 @@ def get_blocked():
                 record["expires"] = expires_at
                 record["expired"] = now >= expires_at
         blocked.append(record)
-=======
-    lines = read_text_log("blocked.log")
-    blocked = []
-    seen = set()
-
-    for line in reversed(lines):
-        m = BLOCK_PATTERN.match(line)
-        if m:
-            ts_str, ip = m.groups()
-            if ip in seen:
-                continue
-            seen.add(ip)
-            ban_info = banned_ips.get(ip)
-            if ban_info:
-                blocked.append({
-                    "ip": ip,
-                    "reason": ban_info.get("reason", "IPS Block"),
-                    "blockedAt": ts_str,
-                    "expires": f"{ban_info.get('duration', 3600)}s",
-                    "duration": "temporary"
-                })
-            else:
-                blocked.append({
-                    "ip": ip,
-                    "reason": "Manual Block",
-                    "blockedAt": ts_str,
-                    "expires": "Permanent",
-                    "duration": "indefinite"
-                })
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
     return jsonify(blocked)
 
 
 @ips_bp.route("/block", methods=["POST"])
 def block_ip_route():
-    data = request.get_json(silent=True) or {}
-<<<<<<< HEAD
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) - {"ip", "reason", "duration"}:
+        return jsonify({"error": "invalid request"}), 400
+
     ip = _valid_ip(data.get("ip"))
-    reason = data.get("reason")
     if not ip:
         return jsonify({"error": "valid ip required"}), 400
-    if not isinstance(reason, str) or not reason.strip():
-        return jsonify({"error": "reason required"}), 400
+
+    reason = data.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > MAX_REASON_LENGTH:
+        return jsonify({"error": "reason required (max 200 characters)"}), 400
 
     raw_duration = data.get("duration")
     if isinstance(raw_duration, bool) or raw_duration is None:
         return jsonify({"error": "valid duration required"}), 400
     try:
         duration = float(raw_duration)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return jsonify({"error": "valid duration required"}), 400
-    if duration <= 0:
-        return jsonify({"error": "valid duration required"}), 400
+    if not math.isfinite(duration) or not MIN_DURATION <= duration <= MAX_DURATION:
+        return jsonify({"error": "duration out of range"}), 400
+
+    result = block_ip(ip)
+    if not isinstance(result, dict) or not result.get("ok"):
+        logger.warning("block enforcement failed: %s", (result or {}).get("message", "unknown error"))
+        return jsonify({"error": "block enforcement failed"}), 503
 
     reason = reason.strip()
-    block_ip(ip)
     add_ban(ip, duration, reason)
     global_live_store.record_block(ip, reason, duration=duration, source="manual")
 
     try:
         from api.services.websocket_service import broadcast_block
 
-=======
-    ip = data.get("ip")
-    reason = data.get("reason", "Manual Block")
-    if not ip:
-        return jsonify({"error": "ip required"}), 400
-
-    add_ban(ip, 3600, reason)
-    log_file = LOG_DIR / "blocked.log"
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-    with log_file.open("a", encoding="utf-8") as f:
-        f.write(f"{ts} - Blocked IP: {ip}\n")
-
-    try:
-        from api.services.websocket_service import broadcast_block
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         broadcast_block(ip, reason)
     except Exception:
-        pass
+        logger.warning("block broadcast failed")
 
-<<<<<<< HEAD
     return jsonify({"status": "blocked", "ip": ip, "reason": reason, "duration": duration})
-=======
-    return jsonify({"status": "blocked", "ip": ip, "reason": reason})
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
 
 @ips_bp.route("/unblock", methods=["POST"])
 def unblock_ip():
-    data = request.get_json(silent=True) or {}
-<<<<<<< HEAD
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) - {"ip"}:
+        return jsonify({"error": "invalid request"}), 400
+
     ip = _valid_ip(data.get("ip"))
     if not ip:
         return jsonify({"error": "valid ip required"}), 400
 
-    remove_ban(ip)
+    result = remove_block(ip)
     global_live_store.record_unblock(ip)
-    return jsonify({"status": "unblocked", "ip": ip})
-=======
-    ip = data.get("ip")
-    if not ip:
-        return jsonify({"error": "ip required"}), 400
-    remove_ban(ip)
 
-    log_file = LOG_DIR / "blocked.log"
-    if log_file.exists():
-        lines = log_file.read_text(encoding="utf-8").splitlines()
-        new_lines = [l for l in lines if f"Blocked IP: {ip}" not in l]
-        log_file.write_text("\n".join(new_lines) + ("\n" if new_lines else ""), encoding="utf-8")
-
-    return jsonify({"status": "unblocked", "ip": ip})
-
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
+    response = {"status": "unblocked", "ip": ip}
+    if isinstance(result, dict) and result.get("ok"):
+        response["enforcement"] = "os"
+    else:
+        logger.warning("unblock enforcement failed: %s", (result or {}).get("message", "unknown error"))
+        response["enforcement"] = "unavailable"
+        response["warning"] = "OS rule removal failed; see server logs"
+    return jsonify(response)

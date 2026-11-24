@@ -3,7 +3,6 @@ class CounterfactualDefenseEngine:
     Evaluates 'What-If' defensive options for an incident and recommends the optimal trade-off
     between threat mitigation and service availability impact.
     """
-<<<<<<< HEAD
     def _incident_field(self, incident, name, default=None):
         if isinstance(incident, dict):
             return incident.get(name, default)
@@ -17,54 +16,32 @@ class CounterfactualDefenseEngine:
         target_port = self._incident_field(incident, "target_port") or self._incident_field(incident, "destination_port")
 
         option_specs = [
-=======
-    def compare_defense_options(self, incident, asset_criticality="MEDIUM"):
-        attacker_ip = incident.attacker_ip if hasattr(incident, "attacker_ip") else incident.get("attacker_ip")
-        
-        options = [
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             {
                 "option": "A: Block Attacker IP",
                 "action": "BLOCK_IP",
                 "security_impact": "HIGH (100% Attacker Isolated)",
                 "availability_impact": "LOW (Only affects attacker IP)",
-<<<<<<< HEAD
                 "rule": {"ip": attacker_ip, "action": "BLOCK"},
-=======
-                "expected_false_blocks": 0,
-                "recommendation_score": 95
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             },
             {
                 "option": "B: Rate-Limit Attacker IP",
                 "action": "RATE_LIMIT",
                 "security_impact": "MEDIUM (Slows down attack)",
                 "availability_impact": "MINIMAL",
-<<<<<<< HEAD
                 "rule": {"ip": attacker_ip, "action": "RATE_LIMIT"},
-=======
-                "expected_false_blocks": 0,
-                "recommendation_score": 75
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             },
             {
                 "option": "C: Block Target Port Network-Wide",
                 "action": "BLOCK_PORT",
                 "security_impact": "HIGH",
                 "availability_impact": "HIGH (Disrupts legitimate users on port)",
-<<<<<<< HEAD
                 "rule": {"port": target_port, "action": "BLOCK"},
-=======
-                "expected_false_blocks": 15,
-                "recommendation_score": 40
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             },
             {
                 "option": "D: Quarantine Target Host",
                 "action": "QUARANTINE_HOST",
                 "security_impact": "HIGH",
                 "availability_impact": "CRITICAL (Target host offline)",
-<<<<<<< HEAD
                 "rule": {"ip": target_ip, "action": "QUARANTINE"},
             },
         ]
@@ -104,18 +81,6 @@ class CounterfactualDefenseEngine:
         return {
             "incident_id": self._incident_field(incident, "incident_id"),
             "best_recommendation": best_recommendation,
-=======
-                "expected_false_blocks": 1,
-                "recommendation_score": 50 if asset_criticality != "CRITICAL" else 20
-            }
-        ]
-
-        # Sort by recommendation score descending
-        options.sort(key=lambda x: x["recommendation_score"], reverse=True)
-        return {
-            "incident_id": getattr(incident, "incident_id", "INC-000"),
-            "best_recommendation": options[0]["option"],
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             "options": options
         }
 

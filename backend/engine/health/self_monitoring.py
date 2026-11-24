@@ -3,7 +3,6 @@ class SelfMonitoringEngine:
     Performs comprehensive subsystem health checks.
     Ensures deterministic stateful firewall functions even if ML/Learning engines fail.
     """
-<<<<<<< HEAD
     def _connected_client_count(self):
         try:
             from api.api import socketio
@@ -89,25 +88,6 @@ class SelfMonitoringEngine:
             overall_status = "IDLE"
         else:
             overall_status = "HEALTHY"
-=======
-    def run_health_check(self):
-        subsystems = {
-            "Packet Capture": {"status": "HEALTHY", "latency_ms": 1.2},
-            "Stateful Firewall": {"status": "HEALTHY", "active_sessions": 142},
-            "IDS Engine": {"status": "HEALTHY", "active_rules": 45},
-            "IPS Engine": {"status": "HEALTHY", "active_bans": 3},
-            "Learning Engine": {"status": "HEALTHY", "baseline_confidence": 0.92},
-            "Anomaly Model": {"status": "HEALTHY", "drift_warning": False},
-            "REST API": {"status": "HEALTHY", "port": 5000},
-            "WebSocket": {"status": "HEALTHY", "connected_clients": 2}
-        }
-
-        overall_status = "HEALTHY"
-        if any(v["status"] == "DEGRADED" for v in subsystems.values()):
-            overall_status = "DEGRADED"
-        if any(v["status"] == "UNHEALTHY" for v in subsystems.values()):
-            overall_status = "UNHEALTHY"
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
         return {
             "overall_status": overall_status,

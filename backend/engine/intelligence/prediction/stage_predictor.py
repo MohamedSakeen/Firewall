@@ -25,7 +25,6 @@ class AttackStagePredictor:
         ]
     }
 
-<<<<<<< HEAD
     def __init__(self, transition_provider=None, learned_transitions=None):
         self.transition_provider = transition_provider
         self.learned_transitions = learned_transitions or {}
@@ -89,14 +88,6 @@ class AttackStagePredictor:
         if not transitions:
             transitions = self._normalize_transitions(self.STAGE_TRANSITIONS.get(current_stage))
 
-=======
-    def predict_next_stages(self, current_stage):
-        transitions = self.STAGE_TRANSITIONS.get(current_stage, [
-            ("Monitoring", 0.70),
-            ("Unknown", 0.30)
-        ])
-        
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         predictions = []
         for next_stage, prob in transitions:
             predictions.append({
@@ -104,11 +95,7 @@ class AttackStagePredictor:
                 "probability": round(prob * 100, 1),
                 "confidence": "HIGH" if prob > 0.5 else "MEDIUM"
             })
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         return {
             "current_stage": current_stage,
             "predictions": predictions

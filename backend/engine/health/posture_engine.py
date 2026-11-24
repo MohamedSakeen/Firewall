@@ -3,7 +3,6 @@ class SecurityPostureEngine:
     Aggregates network security posture score (0-100) combining Detection, Learning,
     Response Effectiveness, Asset Risk, and Model Health components.
     """
-<<<<<<< HEAD
     WEIGHTS = {
         "detection": 0.25,
         "learning": 0.20,
@@ -38,31 +37,11 @@ class SecurityPostureEngine:
             }
 
         weighted_score = sum(validated[name] * weight for name, weight in self.WEIGHTS.items())
-=======
-    def calculate_posture_score(self, detection_score=91, learning_score=87, response_score=94, asset_risk_score=73, model_health=89):
-        weighted_score = (
-            (detection_score * 0.25) +
-            (learning_score * 0.20) +
-            (response_score * 0.25) +
-            (asset_risk_score * 0.15) +
-            (model_health * 0.15)
-        )
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         final_score = round(weighted_score, 1)
         return {
             "overall_posture_score": final_score,
             "status": "HEALTHY" if final_score >= 80 else ("ELEVATED_RISK" if final_score >= 60 else "CRITICAL_RISK"),
-<<<<<<< HEAD
             "components": validated
-=======
-            "components": {
-                "detection": detection_score,
-                "learning": learning_score,
-                "response_effectiveness": response_score,
-                "asset_risk": asset_risk_score,
-                "model_health": model_health
-            }
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         }
 
 global_posture_engine = SecurityPostureEngine()

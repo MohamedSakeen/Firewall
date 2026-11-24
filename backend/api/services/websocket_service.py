@@ -1,7 +1,6 @@
 from datetime import datetime
 from api.api import socketio
 
-<<<<<<< HEAD
 
 def broadcast_packet(entry):
     flat = {
@@ -15,24 +14,6 @@ def broadcast_packet(entry):
         "score": entry.get("score"),
         "direction": entry.get("direction"),
         "decision": entry.get("decision"),
-=======
-_packet_counter = 0
-
-def broadcast_packet(packet_data):
-    global _packet_counter
-    _packet_counter += 1
-    tcp_flags_str = str(packet_data.get("tcp_flags", "")) if packet_data.get("tcp_flags") is not None else "none"
-
-    flat = {
-        "id": _packet_counter,
-        "time": datetime.now().strftime("%H:%M:%S.%f")[:12],
-        "src": f"{packet_data.get('src_ip', '?')}:{packet_data.get('src_port', '?')}",
-        "dst": f"{packet_data.get('dst_ip', '?')}:{packet_data.get('dst_port', '?')}",
-        "proto": packet_data.get("protocol", "?"),
-        "len": 64,
-        "flags": tcp_flags_str,
-        "score": 0,
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
     }
     socketio.emit("packet", flat)
 

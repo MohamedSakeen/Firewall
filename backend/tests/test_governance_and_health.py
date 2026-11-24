@@ -44,14 +44,9 @@ class TestGovernanceAndHealth(unittest.TestCase):
     def test_self_monitoring(self):
         sm = SelfMonitoringEngine()
         res = sm.run_health_check()
-<<<<<<< HEAD
         self.assertIn(res["overall_status"], ("IDLE", "HEALTHY", "DEGRADED", "UNHEALTHY"))
         self.assertIn("Stateful Firewall", res["subsystems"])
         self.assertNotIn("latency_ms", res["subsystems"]["Packet Capture"])
-=======
-        self.assertEqual(res["overall_status"], "HEALTHY")
-        self.assertIn("Stateful Firewall", res["subsystems"])
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
 if __name__ == "__main__":
     unittest.main()

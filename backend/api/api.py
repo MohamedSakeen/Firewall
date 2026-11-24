@@ -1,8 +1,10 @@
+import logging
+import os
 import sys
 import threading
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -10,12 +12,52 @@ BACKEND_DIR = str(Path(__file__).resolve().parent.parent)
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-socketio = SocketIO(cors_allowed_origins="*")
+logger = logging.getLogger(__name__)
+DEFAULT_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+
+
+def get_allowed_origins():
+    raw = os.getenv("FIREWALL_ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
+    origins = []
+    for item in raw.split(","):
+        origin = item.strip()
+        if not origin or origin == "*" or origin in origins:
+            continue
+        origins.append(origin)
+    return origins
+
+
+def sniffer_enabled():
+    return os.getenv("FIREWALL_ENABLE_SNIFFER", "false").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+socketio = SocketIO(cors_allowed_origins=get_allowed_origins())
+
+
+def _apply_secure_headers(response):
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+    )
+    if request.is_secure:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    return response
 
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    app.config["DEBUG"] = False
+    app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+    origins = get_allowed_origins()
+    app.config["CORS_ORIGINS"] = origins
+    CORS(app, origins=origins)
 
     from api.routes.alert import alert_bp
     from api.routes.ips import ips_bp
@@ -54,13 +96,13 @@ def create_app():
     def health_check():
         return jsonify(global_self_monitoring.run_health_check())
 
-    socketio.init_app(app)
+    app.after_request(_apply_secure_headers)
+    socketio.init_app(app, cors_allowed_origins=origins)
     return app
 
 
 def _run_sniffer():
     from scapy.all import sniff
-<<<<<<< HEAD
     from scapy.layers.inet import IP
     from api.services.live_store import global_live_store, packet_direction
     from api.services.websocket_service import (
@@ -135,30 +177,37 @@ def _run_sniffer():
             broadcast_security_event(event)
             if incident is not None:
                 broadcast_incident_updated(incident.to_dict())
-=======
-    from scapy.layers.inet import IP, TCP
-    from engine.packet.packet_normalizer import normalize_packet
-    from engine.firewall.engine import check_packet
-    from engine.IDS.detection_pipeline import run_detection_pipeline
-    from api.services.websocket_service import broadcast_packet
 
-    def process_packet(packet):
-        if IP in packet and TCP in packet:
-            normalized = normalize_packet(packet)
-            broadcast_packet(normalized)
+    try:
+        sniff(prn=process_packet, store=False)
+    except Exception:
+        logger.exception("Packet capture unavailable; live traffic ingestion is disabled")
 
-            src_ip = packet[IP].src
-            dst_port = packet[TCP].dport
-            firewall_result = check_packet(src_ip, dst_port)
-            print(f"{src_ip}:{packet[IP].dst}:{dst_port} -> {firewall_result}")
-            run_detection_pipeline(normalized, packet)
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
-    sniff(prn=process_packet, store=False)
+def start_sniffer_if_enabled(app=None):
+    log = app.logger if app is not None else logger
+    if not sniffer_enabled():
+        log.info("Packet sniffer disabled (set FIREWALL_ENABLE_SNIFFER=1 to enable)")
+        return None
+    thread = threading.Thread(target=_run_sniffer, name="packet-sniffer", daemon=True)
+    thread.start()
+    log.info("Packet sniffer enabled")
+    return thread
+
+
+def run_server():
+    app = create_app()
+    start_sniffer_if_enabled(app)
+    host = os.getenv("FIREWALL_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    try:
+        port = int(os.getenv("FIREWALL_PORT", "5000"))
+        if not 1 <= port <= 65535:
+            raise ValueError("port out of range")
+    except (TypeError, ValueError):
+        logger.warning("Invalid FIREWALL_PORT; using 5000")
+        port = 5000
+    socketio.run(app, host=host, port=port, debug=False)
 
 
 if __name__ == "__main__":
-    app = create_app()
-    t = threading.Thread(target=_run_sniffer, daemon=True)
-    t.start()
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    run_server()
