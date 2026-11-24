@@ -14,9 +14,11 @@ are not a production deployment and are not a security audit.
    `127.0.0.1:5000`, and the SQLite database lives in the named `data` volume.
 
 Defaults are deliberately conservative: `FIREWALL_ENABLE_SNIFFER=0`, API role,
+`FIREWALL_RESPONSE_MODE=shadow`, `FIREWALL_AUTONOMY_LEVEL=LEVEL_1_RECOMMEND`,
 no hardcoded secret (set `FIREWALL_SECRET_KEY` in your environment if you want
 sessions to survive restarts), and frontend build args pointing at localhost
-APIs. Both services drop all Linux capabilities.
+APIs. Both services drop all Linux capabilities. Automated blocking does not
+happen until you deliberately change the mode and autonomy level.
 
 Capture is opt-in: set `FIREWALL_ROLE=all` (or `worker`) and
 `FIREWALL_ENABLE_SNIFFER=1`, then add the privileges your lab requires

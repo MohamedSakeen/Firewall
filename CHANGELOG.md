@@ -17,6 +17,13 @@ All notable changes to this project are documented here.
 - Added login/logout sessions, CSRF tokens, login rate limits, and audit logs.
 - Added a CLI for creating admin, operator, and viewer accounts.
 
+### Response safety
+
+- Made automated response shadow-only by default, with dry-run, approval, and bounded auto modes.
+- Added kill switch, autonomy, allow-list, and rate-limit gates before enforcement.
+- Added durable response action logs with actor and reason for proposals, approvals, blocks, unblocks, and rollbacks.
+- Added real callback-based rollback and admin approval/rejection endpoints.
+
 ### Detection
 
 - Added a versioned, checksummed IDS rule pack with strict schema validation.

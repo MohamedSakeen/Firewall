@@ -42,7 +42,8 @@ plan files describe intended future work, not delivered functionality.
 - `engine/packet/` — packet normalization.
 - `engine/firewall/`, `engine/IDS/`, `engine/IPS/` — rule evaluation and the
   detection/response pipeline. IDS adds explainable reasons, deduplication,
-  and detection-only suppression.
+  and detection-only suppression. IPS adds a single response controller with
+  shadow, dry-run, approval, and bounded auto modes.
 - `engine/scoring/`, `engine/flow/`, `engine/features/`, `engine/detection/anomaly/` —
   scoring, flows, features, and anomaly detection.
 - `engine/learning/`, `engine/intelligence/`, `engine/models/`, `engine/health/`,
@@ -94,6 +95,8 @@ and the Vite dev server on `127.0.0.1:5173`. Ctrl+C stops both children.
 Environment variable names are documented in `.env.example`. The frontend reads
 the `VITE_*` values, and the backend reads `FIREWALL_HOST`, `FIREWALL_PORT`,
 `FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `FIREWALL_ROLE`,
-`FIREWALL_EVENT_RETENTION_DAYS`, `FIREWALL_SECRET_KEY`, `FIREWALL_DB_PATH`, and
-`FIREWALL_COOKIE_SECURE` directly. The launcher sets safe defaults in the child
-process environment.
+`FIREWALL_EVENT_RETENTION_DAYS`, `FIREWALL_RESPONSE_MODE`,
+`FIREWALL_AUTONOMY_LEVEL`, `FIREWALL_AUTO_BLOCK_MAX_PER_MINUTE`,
+`FIREWALL_AUTO_BLOCK_PER_IP_PER_MINUTE`, `FIREWALL_SECRET_KEY`,
+`FIREWALL_DB_PATH`, and `FIREWALL_COOKIE_SECURE` directly. The launcher sets safe
+defaults in the child process environment.

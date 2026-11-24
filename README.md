@@ -44,7 +44,7 @@ The backend evaluates simulated or captured traffic, raises and correlates secur
 - Passive packet capture and normalization (IP/TCP/UDP/ICMP metadata, TCP flags, payload sizes).
 - Stateful firewall evaluation with connection/session tracking and configurable inbound/outbound rules.
 - IDS detection for port scans, SYN/UDP floods, and suspicious authentication patterns, with sliding time windows, threat scoring, versioned/checksummed rule packs, explainable reasons, and suppression.
-- IPS response: temporary/permanent bans, quarantine, whitelists, escalation of repeated low-severity alerts, and unblock timers.
+- IPS response: shadow-by-default proposals, optional human approvals, bounded auto mode, temporary bans, quarantine, allow-lists, rate limits, kill switch, rollback, and unblock timers.
 - Deep packet inspection viewer with raw byte/hex and TCP flag breakdowns.
 
 **Adaptive / self-learning intelligence**
@@ -54,7 +54,7 @@ The backend evaluates simulated or captured traffic, raises and correlates secur
 - Explainable threat scoring, model governance, and health/self-monitoring.
 
 **Autonomous response & assurance**
-- Autonomy levels with kill switch, rollback, shadow evaluation, policy simulation, and counterfactual analysis.
+- Autonomy levels with kill switch, real rollback, shadow/dry-run evaluation, policy simulation, and counterfactual analysis.
 - Response verification, safety validation, deception/honeypot integration, and forensic replay/timeline labs.
 
 **Typical use cases**
@@ -387,7 +387,7 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 | GET | `/api/traffic/live` | Live traffic feed |
 | GET | `/api/blocked` | Currently blocked IPs |
 | POST | `/api/block` | Block an IP (`{"ip": "...", "reason": "..."}`) |
-| POST | `/api/unblock` | Unblock an IP (`{"ip": "..."}`) |
+| POST | `/api/unblock` | Unblock an IP (`{"ip": "...", "reason": "..."}`) |
 | GET / POST | `/api/firewall/rules` | List or add firewall rules |
 | POST | `/api/firewall/rules/delete` | Delete a firewall rule |
 | GET | `/api/rules/<type>` | Read a JSON rule set |
@@ -421,6 +421,10 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 | GET / POST | `/api/responses/shadow` | Shadow evaluation |
 | POST | `/api/responses/shadow/promote` | Promote a shadow policy |
 | POST | `/api/responses/verify` | Verify a proposed response |
+| GET | `/api/responses/approvals` | Pending response approvals (admin) |
+| POST | `/api/responses/approvals/<id>/approve` | Approve a pending block (admin) |
+| POST | `/api/responses/approvals/<id>/reject` | Reject a pending block (admin) |
+| GET | `/api/responses/actions` | Durable block/unblock/approval action log |
 | GET | `/api/autonomy/status` | Autonomy status |
 | POST | `/api/autonomy/level` | Set autonomy level |
 | POST | `/api/autonomy/kill-switch` | Engage kill switch |
@@ -438,6 +442,10 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
   - `backend/engine/rules/IDS/manifest.json` names the IDS rule files and their SHA-256 checksums. A missing or changed manifest/rule file fails fast at import instead of silently using partial rules.
   - `backend/engine/rules/IDS/suppression.json` is an empty-by-default allow-list of source IPs/CIDRs and rule IDs. Suppression only filters alerts; it does not grant access or disable blocking.
   - Alerts include short machine-readable reasons such as observed count, threshold, and window. Raw packet payloads are not copied into reasons.
+- **Response safety:** `FIREWALL_RESPONSE_MODE` defaults to `shadow`, so detections only propose actions. `dry-run` behaves similarly; `approval` queues blocks for an admin; `auto` enforces only when the kill switch is off, the autonomy level permits the risk, the source is not allow-listed, and rate limits allow it. Invalid settings fail safe to `shadow`.
+  - `backend/engine/rules/IPS/whitelist.json` accepts IPs and CIDRs. A `/0` entry or malformed file disables automated enforcement instead of allowing everything.
+  - `FIREWALL_AUTONOMY_LEVEL` defaults to `LEVEL_1_RECOMMEND`, which permits detection but not enforcement. Raise it deliberately before using `auto` mode.
+  - Every proposal, approval, rejection, block, unblock, and rollback is written to the `response_actions` table with an actor and reason. The kill switch also blocks manual `/api/block` calls until reset.
 - **Durable events:** SQLite tables for users, audit records, and redacted packet/alert/incident summaries are stored under `backend/data/` by default. `backend/logs/traffic.json` and `backend/logs/alerts.json` are legacy JSON logs used by individual services.
 - **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
 - **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.

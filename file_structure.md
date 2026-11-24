@@ -16,7 +16,7 @@ Firewall/
 │   │   ├── packet/                   # packet normalization
 │   │   ├── firewall/                 # firewall rule evaluation and state tracking
 │   │   ├── IDS/                      # detectors, explanations, suppression, dedupe
-│   │   ├── IPS/                      # block, ban, quarantine, whitelist helpers
+│   │   ├── IPS/                      # response controller, blocks, bans, allow-list
 │   │   ├── scoring/                  # threat scoring and severity
 │   │   ├── flow/                     # flow tracking and window aggregation
 │   │   ├── features/                 # feature extraction and context
