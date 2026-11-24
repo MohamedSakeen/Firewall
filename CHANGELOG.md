@@ -17,6 +17,13 @@ All notable changes to this project are documented here.
 - Added login/logout sessions, CSRF tokens, login rate limits, and audit logs.
 - Added a CLI for creating admin, operator, and viewer accounts.
 
+### Storage
+
+- Added versioned SQLite storage for durable packet, alert, and incident summaries.
+- Added sensitive-field redaction and configurable event retention.
+- Added `FIREWALL_ROLE=api|worker|all` to separate web and capture processes.
+- Added database backup, event prune, and stats commands to `manage.py`.
+
 ### Security
 
 - Bound the API to localhost by default and disabled debug mode.

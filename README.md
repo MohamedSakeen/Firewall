@@ -75,6 +75,7 @@ Backend sniffer ──► packet normalizer / feature extractor
         ├──► stateful firewall engine (allow / drop / block)
         ├──► IDS detection pipeline (recon, flood, anomaly, signatures)
         ├──► threat scoring & event correlation
+        ├──► durable SQLite event store (users, audit, events)
         └──► IPS response (ban, quarantine, whitelist, escalation)
                     │
                     ▼
@@ -84,7 +85,7 @@ Backend sniffer ──► packet normalizer / feature extractor
         React 19 dashboard (port 5173)
 ```
 
-Traffic flows from the sniffer through normalization, firewall state checks, and detection/scoring engines. Results are persisted to JSON logs under `backend/logs/`, exposed through REST endpoints, and broadcast in real time to the dashboard over WebSockets.
+Traffic flows from the sniffer through normalization, firewall state checks, and detection/scoring engines. Results are written to a versioned SQLite database, exposed through REST endpoints, and broadcast in real time to the dashboard over WebSockets. Some legacy JSON log files under `backend/logs/` are still used by individual services. `FIREWALL_ROLE=api` runs only the web layer; `FIREWALL_ROLE=worker` runs capture only.
 
 ---
 
@@ -95,7 +96,7 @@ Traffic flows from the sniffer through normalization, firewall state checks, and
 | **Backend** | Python 3.10+, Flask, Flask-CORS, Flask-SocketIO, Eventlet, Scapy, scikit-learn, pytest |
 | **Frontend** | React 19, Vite, Redux Toolkit, React Router, Tailwind CSS v4, Framer Motion, Recharts, Axios, Socket.IO Client |
 | **Capture driver** | Npcap (Windows; installer provided as `npcap-1.88.exe`) |
-| **Data storage** | Local JSON rule files and JSON log files (no external database required) |
+| **Data storage** | SQLite for accounts, audit records, and durable events; local JSON rule files; some JSON log files |
 
 ---
 
@@ -110,6 +111,9 @@ Firewall/
 │   │   │                           #   incidents, learning, simulation, response, hunting, assets,
 │   │   │                           #   events, autonomy, posture)
 │   │   └── services/               # WebSocket broadcasts and JSON log service
+│   ├── auth/                       # Users, sessions, CSRF, audit logs
+│   ├── storage/                    # Versioned SQLite event store
+│   ├── data/                       # Runtime SQLite database (git-ignored)
 │   ├── engine/
 │   │   ├── packet/                 # Packet parsing, extraction, normalization
 │   │   ├── firewall/               # Rule evaluation, stateful tracking, blocker, state table
@@ -130,10 +134,12 @@ Firewall/
 │   │   ├── evaluator.py            # Packet evaluation entry point
 │   │   └── policy_loader.py        # Policy loading helpers
 │   ├── sniffer/                    # Scapy sniffing helpers
-│   ├── logs/                       # Runtime JSON logs (traffic.json, alerts.json)
+│   ├── logs/                       # Legacy runtime JSON logs (traffic.json, alerts.json)
 │   ├── tests/                      # pytest suites for each engine subsystem
 │   ├── main.py                     # Standalone CLI sniffer / detection demo
-│   └── requirements.txt            # Python dependencies
+│   ├── manage.py                   # Account, backup, prune, and stats CLI
+│   ├── worker.py                   # Capture-only worker entry point
+│   └── requirements.txt            # Pinned Python dependencies
 ├── frontend/
 │   ├── public/                     # Static assets (favicon, icons)
 │   ├── src/
@@ -285,6 +291,27 @@ python main.py
 
 This prints firewall decisions, port-scan detections, stateful evaluation results, and IDS alerts directly to the console without starting the web UI.
 
+### Capture worker and maintenance
+
+For a separate capture process, run the web layer and worker as two processes:
+
+```bash
+# Terminal 1: API only, no capture
+FIREWALL_ROLE=api python backend/api/api.py
+# Terminal 2: capture only, still opt-in and still needs privileges
+FIREWALL_ROLE=worker FIREWALL_ENABLE_SNIFFER=1 python backend/worker.py
+```
+
+The default `FIREWALL_ROLE=all` keeps the simple one-process lab setup. Durable events are retained for `FIREWALL_EVENT_RETENTION_DAYS` (30 days by default) and pruned at startup.
+
+```bash
+python backend/manage.py backup-db --output backend/data/backup.db
+python backend/manage.py prune-events --days 30
+python backend/manage.py stats
+```
+
+Backups are made with SQLite's backup API, and sensitive event fields are redacted before storage.
+
 ### Production build (frontend)
 
 ```bash
@@ -387,11 +414,12 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 
 - **Firewall / IDS / IPS rules:** JSON files under `backend/engine/rules/` (`firewall/`, `IDS/`, `IPS/`, `scoring/`). Edit them directly or through the dashboard's **Rules Manager**.
   - `firewall/rules.json` holds `blocked_ips` and `blocked_ports` lists used by the firewall engine.
-- **Runtime logs:** `backend/logs/traffic.json` and `backend/logs/alerts.json`; consumed by the log service and API.
+- **Durable events:** SQLite tables for users, audit records, and redacted packet/alert/incident summaries are stored under `backend/data/` by default. `backend/logs/traffic.json` and `backend/logs/alerts.json` are legacy JSON logs used by individual services.
 - **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
 - **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.
 - **Environment variables:** Copy `.env.example` for the list of supported names. Export them in your shell before launching; neither the launcher nor the backend auto-loads `.env`. The backend reads the `FIREWALL_*` values directly.
 - **Auth settings:** `FIREWALL_SECRET_KEY` should be a long random value for any persistent install. `FIREWALL_DB_PATH` sets the SQLite database location. `FIREWALL_COOKIE_SECURE=1` should only be used behind HTTPS. Create accounts with `python backend/manage.py`.
+- **Process and retention settings:** `FIREWALL_ROLE` selects `all`, `api`, or `worker`; `FIREWALL_EVENT_RETENTION_DAYS` controls durable event pruning. `FIREWALL_ENABLE_SNIFFER` remains opt-in even in worker mode.
 - **Python environment:** `backend/.venv` is created by the launcher and is git-ignored.
 
 ---

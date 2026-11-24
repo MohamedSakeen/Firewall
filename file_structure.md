@@ -32,12 +32,14 @@ Firewall/
 │   │   ├── forensics/                # replay and timeline
 │   │   └── rules/                    # JSON rule sets (firewall/, IDS/, IPS/, scoring/)
 │   ├── auth/                         # users, Argon2id hashes, sessions, CSRF, audit
+│   ├── storage/                      # versioned SQLite event store
 │   ├── sniffer/                      # optional Scapy capture helpers
-│   ├── logs/                         # generated runtime JSON logs (local only)
-│   ├── data/                         # SQLite DB ignored by git (accounts/audit)
+│   ├── logs/                         # legacy runtime JSON logs (local only)
+│   ├── data/                         # SQLite DB ignored by git (accounts/audit/events)
 │   ├── tests/                        # pytest suites
 │   ├── main.py                       # standalone CLI sniffer/detection demo
-│   ├── manage.py                     # create admin/operator/viewer accounts
+│   ├── manage.py                     # accounts, backup, prune, and stats CLI
+│   ├── worker.py                     # capture-only process role
 │   ├── requirements.txt              # pinned Python dependencies
 │   └── .venv/                        # created by start_all.py; git-ignored
 ├── frontend/

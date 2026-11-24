@@ -33,8 +33,11 @@ plan files describe intended future work, not delivered functionality.
 - `api/services/` — `live_store.py`, `log_service.py`, `websocket_service.py`.
 - `auth/` — SQLite-backed users and audit logs, Argon2id hashes, Flask-Login
   sessions, CSRF protection, rate limits, and role/path checks.
-- `manage.py` — CLI to create admin, operator, and viewer accounts. No default
-  credentials exist.
+- `manage.py` — CLI to create accounts, back up the database, prune events, and
+  show counts. No default credentials exist.
+- `storage/events.py` — versioned SQLite event store with redaction, retention,
+  and parameterized queries.
+- `worker.py` — capture-only entry point for `FIREWALL_ROLE=worker`.
 - `sniffer/` — Scapy capture helpers (used only when capture is enabled).
 - `engine/packet/` — packet normalization.
 - `engine/firewall/`, `engine/IDS/`, `engine/IPS/` — rule evaluation and the
@@ -46,7 +49,8 @@ plan files describe intended future work, not delivered functionality.
   experimental adaptive-defense modules covered by unit tests, not production
   validation.
 - `engine/rules/` — JSON rule sets under `firewall/`, `IDS/`, `IPS/`, `scoring/`.
-- `logs/` — runtime JSON logs (generated locally).
+- `logs/` — legacy runtime JSON logs (generated locally).
+- `data/` — runtime SQLite database, backed up with `manage.py backup-db`.
 - `tests/` — pytest suites; `python -m pytest` from the repo root uses `pytest.ini`.
 - `requirements.txt` — pinned direct dependencies. Install into `backend/.venv`,
   never globally.
@@ -74,6 +78,7 @@ There is no `src/data/mockData.js`, `src/hooks/`, or `dashboard/` directory.
 ```bash
 python backend/manage.py create-admin   # one-time, creates the first user
 python start_all.py                     # Windows wrappers: start_all.bat / start_all.ps1
+python backend/manage.py stats          # user and durable event counts
 python -m pytest                        # from the repository root
 python build_frontend.py                # runs npm run build in frontend/
 ```
@@ -84,6 +89,7 @@ and the Vite dev server on `127.0.0.1:5173`. Ctrl+C stops both children.
 
 Environment variable names are documented in `.env.example`. The frontend reads
 the `VITE_*` values, and the backend reads `FIREWALL_HOST`, `FIREWALL_PORT`,
-`FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `FIREWALL_SECRET_KEY`,
-`FIREWALL_DB_PATH`, and `FIREWALL_COOKIE_SECURE` directly. The launcher sets safe
-defaults in the child process environment.
+`FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `FIREWALL_ROLE`,
+`FIREWALL_EVENT_RETENTION_DAYS`, `FIREWALL_SECRET_KEY`, `FIREWALL_DB_PATH`, and
+`FIREWALL_COOKIE_SECURE` directly. The launcher sets safe defaults in the child
+process environment.
