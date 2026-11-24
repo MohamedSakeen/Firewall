@@ -48,7 +48,7 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
         self.assertFalse(engine.kill_switch_active)
 
     def test_rollback_manager(self):
-        rm = ResponseRollbackManager()
+        rm = ResponseRollbackManager(unblock_func=lambda ip: {"ok": True, "message": "unblocked"})
         rec = rm.register_action("ACT-101", "192.168.1.50", duration_seconds=1)
         self.assertEqual(rec["status"], "ACTIVE")
 

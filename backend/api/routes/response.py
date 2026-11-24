@@ -1,10 +1,14 @@
 import ipaddress
+import re
 
 from flask import Blueprint, jsonify, request
+from flask_login import current_user
 
 from api.services.live_store import global_live_store
+from auth.db import list_response_actions
 from engine.deception.honeypot_manager import global_deception_manager
 from engine.flow.flow_tracker import global_flow_tracker
+from engine.IPS.response_controller import global_response_controller
 from engine.intelligence.correlation.event_correlator import global_event_correlator
 from engine.response.counterfactual import global_counterfactual_engine
 from engine.response.policy.decision_engine import global_decision_engine
@@ -21,6 +25,30 @@ def _valid_ip(value):
         return str(ipaddress.ip_address(value.strip()))
     except ValueError:
         return None
+
+
+def _valid_action_id(value):
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", cleaned):
+        return None
+    return cleaned
+
+
+def _decision_reason(data):
+    data = data if isinstance(data, dict) else {}
+    if set(data) - {"reason"}:
+        return None, "unknown fields are not allowed"
+    reason = data.get("reason")
+    if reason is None:
+        return "", None
+    if not isinstance(reason, str):
+        return None, "reason must be a string"
+    cleaned = " ".join(reason.split())
+    if len(cleaned) > 200:
+        return None, "reason must be at most 200 characters"
+    return cleaned, None
 
 
 def _find_incident(incident_id):
@@ -167,3 +195,58 @@ def verify_response():
             return jsonify({"error": f"valid {field} required"}), 400
 
     return jsonify(global_response_verifier.verify_effectiveness(**values))
+
+
+@response_bp.route("/approvals", methods=["GET"])
+def list_approvals():
+    return jsonify({"approvals": global_response_controller.list_pending_actions()})
+
+
+@response_bp.route("/approvals/<action_id>/approve", methods=["POST"])
+def approve_action(action_id):
+    identifier = _valid_action_id(action_id)
+    if identifier is None:
+        return jsonify({"error": "invalid action_id"}), 400
+    reason, error = _decision_reason(request.get_json(silent=True) or {})
+    if error is not None:
+        return jsonify({"error": error}), 400
+
+    result = global_response_controller.approve(
+        identifier, actor=current_user.username, reason=reason
+    )
+    if result["status"] == "NOT_FOUND":
+        return jsonify({"error": "pending action not found"}), 404
+    if result["status"] == "REJECTED":
+        return jsonify(result), 409
+    if result["status"] == "FAILED":
+        return jsonify(result), 503
+    return jsonify(result)
+
+
+@response_bp.route("/approvals/<action_id>/reject", methods=["POST"])
+def reject_action(action_id):
+    identifier = _valid_action_id(action_id)
+    if identifier is None:
+        return jsonify({"error": "invalid action_id"}), 400
+    reason, error = _decision_reason(request.get_json(silent=True) or {})
+    if error is not None:
+        return jsonify({"error": error}), 400
+
+    result = global_response_controller.reject(
+        identifier, actor=current_user.username, reason=reason
+    )
+    if result["status"] == "NOT_FOUND":
+        return jsonify({"error": "pending action not found"}), 404
+    return jsonify(result)
+
+
+@response_bp.route("/actions", methods=["GET"])
+def list_actions():
+    raw_limit = request.args.get("limit", "100")
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return jsonify({"error": "limit must be a positive integer"}), 400
+    if not 1 <= limit <= 1000:
+        return jsonify({"error": "limit must be between 1 and 1000"}), 400
+    return jsonify({"actions": list_response_actions(limit=limit)})

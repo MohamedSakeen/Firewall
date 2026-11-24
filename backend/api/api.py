@@ -30,6 +30,7 @@ ADMIN_PATH_PREFIXES = (
     "/api/firewall/rules",
     "/api/autonomy/",
     "/api/auth/users",
+    "/api/responses/approvals",
 )
 TRUTHY = {"1", "true", "yes", "on"}
 
@@ -203,6 +204,9 @@ def create_app():
     app.register_blueprint(auth_bp)
 
     _configure_auth(app)
+    from engine.IPS.response_controller import configure_autonomy_level
+
+    configure_autonomy_level()
     prune_expired_events(app.logger)
 
     @app.route("/api/health", methods=["GET"])
