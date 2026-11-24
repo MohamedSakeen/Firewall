@@ -1,5 +1,7 @@
 # Smart Self-Learning Firewall — Implementation Execution Plan
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 **Purpose:** Practical step-by-step plan for evolving the existing Firewall + IDS + IPS project into a Smart Self-Learning Firewall.
 
 **Starting point:** Existing `PROJECT_MEMORY.md` architecture.

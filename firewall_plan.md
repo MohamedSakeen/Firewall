@@ -1,5 +1,7 @@
 # Smart Self-Learning Firewall — Detailed Implementation Plan
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 **Project:** Adaptive Cyber Defense Platform  
 **Current foundation:** Python + Scapy/Npcap + Flask/Socket.IO + React 19/Vite + Redux Toolkit + Tailwind + Recharts  
 **Plan date:** 2026-08-15

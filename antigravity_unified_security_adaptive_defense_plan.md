@@ -1,5 +1,7 @@
 # Antigravity Implementation Plan — Unified Security Intelligence & Adaptive Defense
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## Purpose
 
 This is the execution specification for continuing the Smart Self-Learning Firewall from its current state.

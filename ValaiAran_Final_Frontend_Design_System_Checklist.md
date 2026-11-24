@@ -1,7 +1,9 @@
 # ValaiAran — Final Frontend Design System & Implementation Checklist
 
-> **Purpose:** Single source of truth for the ValaiAran frontend UI/UX.  
-> **Status:** Fully implemented and verified.
+> **STATUS: planning document, not a statement of delivered functionality.**
+
+> **Purpose:** Reference checklist for the ValaiAran frontend UI/UX.
+> **Status:** Aspirational design target; not verified as delivered.
 
 ---
 

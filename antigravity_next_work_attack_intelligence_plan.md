@@ -1,4 +1,7 @@
 # Antigravity — Next Work Implementation Plan
+
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## Phase: Attack Understanding, Threat Hunting, Prediction Foundation & Security Intelligence
 
 ### Project

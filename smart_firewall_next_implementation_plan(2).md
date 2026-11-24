@@ -1,5 +1,7 @@
 # Smart Self-Learning Firewall — Next Implementation Plan
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## Phase 7 → Phase 14
 
 **Purpose:** Continue implementation after completing the initial Smart-Learning foundation.

@@ -1,5 +1,9 @@
 # System Architecture Audit & Data Flow Documentation
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+> This is a design review of a local lab project. There is no authentication,
+> completed security audit, CI/CD pipeline, or production deployment here.
+
 ## 1. Subsystem Audit Matrix
 
 | Subsystem | Location | Responsibilities | Key Functions / Classes | Inputs | Outputs |
@@ -43,4 +47,4 @@
 ## 3. Technology & Safety Assumptions
 
 - **Concurrency & State**: Python dictionary tables (`session`, `offense_counter`, `ban_list`) operate in memory; synchronization locks ensure thread safety when accessed by background sniffer threads and Flask WSGI threads.
-- **Graceful Fallbacks**: If packet sniffing or raw driver interaction fails due to permissions, mock telemetry modes can be engaged without crashing REST API services.
+- **Capture is optional**: The default launcher starts the API without the sniffer. The REST API can still serve local log data; simulation endpoints can generate lab data. There is no automatic mock-telemetry fallback or production validation.

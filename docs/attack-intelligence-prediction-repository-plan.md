@@ -1,5 +1,7 @@
 # Repository Implementation Plan — Attack Understanding, Threat Hunting & Prediction Shadow Engine
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## 1. Current Architecture & State
 - **Backend:** Python 3.10+ Scapy/Flask/Socket.IO with stateful firewall, signature IDS, IPS blocker, flow tracker, baseline engine, trust gate, unified security events, explainable threat scoring, event correlator, incident manager, response safety validator, policy simulator, shadow rules evaluator, and response verifier.
 - **Frontend:** React 19 + Vite + Tailwind CSS + Recharts SOC Dashboard with pages for Dashboard, Security Events, Self-Learning Baselines, Adaptive Defense, Threat Hunting, Incidents, Attack Graph, Policy Simulator, Asset Inventory, Model Health, Firewall, IDS, IPS, Packets, Traffic, Rules, Logs, and Settings.

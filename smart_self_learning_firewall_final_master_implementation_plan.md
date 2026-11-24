@@ -1,5 +1,8 @@
 # Smart Self-Learning Firewall
 # Final End-to-End Implementation Plan
+
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## From Current Codebase → Production / Deployment-Ready Application
 
 ---

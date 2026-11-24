@@ -1,4 +1,7 @@
 # Antigravity — Next Implementation Plan
+
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## Phase: Production-Grade Autonomous Defense, MLOps, Deception, Explainability & Evaluation
 
 ## 1. Purpose

@@ -1,5 +1,7 @@
 # Repository Implementation Plan — Production-Grade Autonomous Defense, MLOps & Governance
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## 1. Architecture & Security Boundaries
 The platform evolves from reactive detection to bounded, auditable, and reversible autonomous defense.
 

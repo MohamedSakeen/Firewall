@@ -1,5 +1,7 @@
 # Repository-Specific Implementation Plan — Unified Security Intelligence & Adaptive Defense
 
+> **STATUS: planning document, not a statement of delivered functionality.**
+
 ## 1. Current Architecture Overview
 
 The system consists of a Python 3.10+ Scapy/Flask/Socket.IO backend and a React 19 / Vite / Tailwind CSS / Recharts frontend.

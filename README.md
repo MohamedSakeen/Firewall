@@ -1,10 +1,21 @@
 # NetGuard AI — Smart Firewall, IDS & IPS Suite
 
-A full-stack, self-learning network security platform that combines **deep packet inspection (DPI)**, a **stateful firewall**, **signature- and anomaly-based Intrusion Detection (IDS)**, and **automated Intrusion Prevention (IPS)** with a real-time SOC dashboard.
+> **STATUS: local lab / demo only. Not production-ready.**
+>
+> This is a learning and demonstration project, not a deployable security product.
+> **There is no authentication, authorization, or user access control yet.** Adding
+> authentication is the final planned phase (see the planning documents in `docs/`).
+> Keep both servers bound to localhost and do not expose them to an untrusted network.
+>
+> Packet capture is **passive and opt-in**: the default launcher starts the API with
+> the sniffer disabled, so no Administrator/root privileges are needed. Any blocking
+> or response action is separate from capture, and real OS-level packet blocking
+> depends on the host platform, drivers, and privileges; it is not guaranteed here.
+>
+> Several adaptive-defense modules are experimental and covered by unit tests, but
+> they have not been validated in production, and no completed security audit exists.
 
-The backend captures live traffic with Scapy/Npcap, normalizes and evaluates every packet, raises and correlates security events, and streams telemetry to a React dashboard over Socket.IO. On top of the classic firewall/IDS/IPS pipeline, the suite adds adaptive defense capabilities: behavioral baselines, model health monitoring, attack-graph correlation, incident prediction, policy simulation, threat hunting, deception (honeypots), and autonomous response with safety guardrails.
-
-> **Intended use:** local network monitoring, security research, and lab/education environments. See [Security & Operational Notes](#security--operational-notes) before exposing any component beyond localhost.
+The backend evaluates simulated or captured traffic, raises and correlates security events, and streams telemetry to a React dashboard over Socket.IO. The repository also contains planning documents for deeper analysis, deception, prediction, and autonomous response work. See [Security & Operational Notes](#security--operational-notes) before exposing any component beyond localhost.
 
 ---
 
@@ -29,8 +40,8 @@ The backend captures live traffic with Scapy/Npcap, normalizes and evaluates eve
 
 ## Features & Use Cases
 
-**Core defense pipeline**
-- Live packet capture and normalization (IP/TCP/UDP/ICMP metadata, TCP flags, payload sizes).
+**Core defense pipeline** (capture is optional and opt-in)
+- Passive packet capture and normalization (IP/TCP/UDP/ICMP metadata, TCP flags, payload sizes).
 - Stateful firewall evaluation with connection/session tracking and configurable inbound/outbound rules.
 - IDS detection for port scans, SYN/UDP floods, and suspicious authentication patterns, with sliding time windows and threat scoring.
 - IPS response: temporary/permanent bans, quarantine, whitelists, escalation of repeated low-severity alerts, and unblock timers.
@@ -151,11 +162,10 @@ Firewall/
 
 ## Prerequisites
 
-- **Operating system:** Windows 10/11 recommended; Linux/macOS also work with elevated privileges.
-- **Python:** 3.10 or newer (with `pip`).
+- **Operating system:** Windows, Linux, or macOS. Nothing here is production-tested.
+- **Python:** 3.10 or newer (with `venv` and `pip`).
 - **Node.js:** 18 or newer (npm 9+).
-- **Packet capture driver (Windows):** Install [Npcap](https://npcap.com/) with **WinPcap API compatibility mode** enabled. An installer is included at the repository root as `npcap-1.88.exe`.
-- **Privileges:** Raw packet sniffing requires Administrator/root privileges.
+- **Optional, only for packet capture:** On Windows install [Npcap](https://npcap.com/) with **WinPcap API compatibility mode** enabled. An installer is included at the repository root as `npcap-1.88.exe`. Raw capture needs Administrator/root privileges; the default launcher does not use it.
 
 ---
 
@@ -169,68 +179,83 @@ cd Firewall
 
 ### 2. Backend dependencies
 
-```bash
-cd backend
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# macOS / Linux:
-source venv/bin/activate
+The launcher creates `backend/.venv` and installs the pinned requirements there;
+nothing is installed globally. The venv includes system site packages so an
+already-provisioned lab can reuse matching wheels; exact pins still install into
+the venv when host versions differ. To do it manually:
 
-pip install -r requirements.txt
+```bash
+python -m venv backend/.venv
+# Windows:
+backend\.venv\Scripts\python -m pip install -r backend\requirements.txt
+# macOS / Linux:
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
 ```
 
 ### 3. Frontend dependencies
 
 ```bash
 cd frontend
-npm install
+npm ci        # uses the checked-in package-lock.json
 ```
 
-### 4. Packet capture driver (Windows only)
+### 4. Packet capture driver (Windows only, optional)
 
-Run `npcap-1.88.exe` as Administrator and keep the default *WinPcap API compatibility* option selected, then reboot if prompted.
+Only needed if you explicitly enable the sniffer. Run `npcap-1.88.exe` as Administrator and keep the default *WinPcap API compatibility* option selected, then reboot if prompted.
 
 ---
 
 ## Running the Application
 
-There are three ways to start the suite.
+There are three ways to start the suite in the local lab.
 
 ### Option A — One-command launcher (recommended)
 
-The launchers install any missing dependencies and start both servers for you.
+The launchers create `backend/.venv`, install pinned Python packages there, run
+`npm ci` in `frontend/`, and start both servers. Press Ctrl+C to stop both.
+The backend starts on `127.0.0.1:5000` with the sniffer **off**; no elevated
+terminal is needed.
 
 ```bash
 # Cross-platform (Python):
 python start_all.py
 
-# Windows batch:
+# Windows batch (thin wrapper around the Python launcher):
 start_all.bat
 
-# Windows PowerShell (run as Administrator for sniffing):
+# Windows PowerShell (thin wrapper around the Python launcher):
 .\start_all.ps1
 ```
 
+To opt into the legacy sniffer entry point, set `FIREWALL_ENABLE_SNIFFER=1`
+before launching. That path starts Scapy capture and may need Administrator/root
+and Npcap; it does not honor the host/port variables yet.
+
 ### Option B — Start each service manually
 
-Terminal 1 — backend API, WebSockets, and background sniffer:
+Terminal 1 — backend API and WebSockets, **without** the sniffer:
 
 ```bash
 cd backend
-python api/api.py
+# macOS / Linux:
+FIREWALL_ENABLE_SNIFFER=0 .venv/bin/python api/api.py
+# Windows: set FIREWALL_ENABLE_SNIFFER=0 && .venv\Scripts\python.exe api\api.py
 ```
 
 Terminal 2 — frontend dev server:
 
 ```bash
 cd frontend
+npm ci
 npm run dev
 ```
 
-Open the dashboard at **http://localhost:5173**. The API and WebSocket server run at **http://localhost:5000**.
+Open the dashboard at **http://127.0.0.1:5173**. The API and WebSocket server run at **http://127.0.0.1:5000**.
 
-> Run the backend from an elevated (Administrator/root) terminal so Scapy can capture live packets. If you only want to explore the dashboard with existing log data, the API works without capture privileges.
+> `python api/api.py` is the normal backend entry point. It binds to
+> `127.0.0.1:5000` with debug off by default. Packet capture is opt-in; enable it
+> only with `FIREWALL_ENABLE_SNIFFER=1` and only on interfaces you are authorized
+> to monitor.
 
 ### Option C — Standalone CLI sniffer demo
 
@@ -344,9 +369,10 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 - **Firewall / IDS / IPS rules:** JSON files under `backend/engine/rules/` (`firewall/`, `IDS/`, `IPS/`, `scoring/`). Edit them directly or through the dashboard's **Rules Manager**.
   - `firewall/rules.json` holds `blocked_ips` and `blocked_ports` lists used by the firewall engine.
 - **Runtime logs:** `backend/logs/traffic.json` and `backend/logs/alerts.json`; consumed by the log service and API.
-- **Backend host/ports:** The Flask app runs on port `5000` (defined at the bottom of `backend/api/api.py`).
-- **Frontend API/socket URLs:** Hardcoded to `http://localhost:5000` in `frontend/src/services/api.js` and `frontend/src/services/socket.js`. Change these constants if the backend runs on another host.
-- **Environment variables:** The project currently requires none. If you introduce configuration secrets, keep them in `.env` (already git-ignored) and provide a `.env.example` with dummy values.
+- **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
+- **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.
+- **Environment variables:** Copy `.env.example` for the list of supported names (`FIREWALL_HOST`, `FIREWALL_PORT`, `FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `VITE_API_BASE_URL`, `VITE_SOCKET_URL`, `NETGUARD_LOCAL_NETWORKS`). Export them in your shell before launching; neither the launcher nor the backend auto-loads `.env`. The backend reads the `FIREWALL_*` values directly. No secrets are required today.
+- **Python environment:** `backend/.venv` is created by the launcher and is git-ignored.
 
 ---
 
@@ -355,8 +381,12 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 Backend engine tests use `pytest` and live under `backend/tests/`:
 
 ```bash
+# From the repository root (pytest.ini sets pythonpath = backend):
+python -m pytest
+
+# Or, with the project virtual environment active:
 cd backend
-pytest
+.venv/bin/python -m pytest   # Windows: .venv\Scripts\python.exe -m pytest
 ```
 
 Frontend linting uses ESLint:
@@ -372,20 +402,22 @@ npm run lint
 
 | Symptom | Resolution |
 | --- | --- |
-| `Scapy` cannot capture packets | Run the backend as Administrator/root; on Windows confirm Npcap is installed with WinPcap compatibility mode. |
-| Dashboard shows no live data | Confirm the backend is running on port 5000 and the browser can reach it; check the Socket.IO connection in the browser console. |
-| `npm run dev` fails | Use Node.js 18+ and run `npm install` inside `frontend/` first. |
-| Port 5000/5173 already in use | Stop the conflicting process or change the ports in `backend/api/api.py` and the frontend service files. |
-| Blank screen after build | Re-run `npm run build` and make sure the API base URL in `frontend/src/services/api.js` matches the backend. |
+| Sniffer cannot capture packets | Capture is off by default. If you opt in with `FIREWALL_ENABLE_SNIFFER=1`, run as Administrator/root and confirm Npcap on Windows with WinPcap compatibility mode. |
+| Dashboard shows no live data | This is expected with the sniffer off unless log data exists. Check the backend on port 5000 and the browser's Socket.IO console. |
+| `npm ci` / `npm run dev` fails | Use Node.js 20+ and run `npm ci` inside `frontend/`. `npm ci` needs `frontend/package-lock.json`. |
+| Port 5000/5173 already in use | Stop the conflicting process or set `FIREWALL_PORT` and matching `VITE_API_BASE_URL` / `VITE_SOCKET_URL` for the frontend. |
+| Blank screen after build | Re-run `python build_frontend.py` and check that the Vite API/socket environment values point at the backend. |
 
 ---
 
 ## Security & Operational Notes
 
-- This project is designed for **local/lab use**. The development server runs with `debug=True` and permissive CORS (`*`), and the API has no authentication layer — do not expose it to untrusted networks or the internet as-is.
-- Packet capture and active blocking require elevated privileges. Run only on interfaces you are authorized to monitor.
-- Rule files and logs are stored locally; protect them appropriately and review any IP bans before deploying in a shared environment.
-- A malicious or misconfigured rule set can block legitimate traffic. Use the policy simulator and kill switch when experimenting with autonomous response.
+- This project is designed for **local/lab use only**. The API has no authentication or access control yet. CORS is limited to the local dashboard origins by default, debug mode is off, and the backend binds to localhost by default. Do not expose any component to untrusted networks or the internet.
+- Packet capture is passive and opt-in. Capture and OS-level blocking depend on platform, driver, and privileges; do not assume either works outside a lab. Run only on interfaces you are authorized to monitor.
+- Rule files and logs are stored locally; protect them appropriately and review any IP bans before using this on a shared machine.
+- A malicious or misconfigured rule set can block legitimate traffic. Use the policy simulator and kill switch when experimenting with response policies.
+- No formal security audit has been completed and there is no production deployment pipeline. Basic CI runs the backend tests and frontend build; the planning documents describe intended future work, not delivered features.
+- `npm audit` currently reports 0 vulnerabilities after refreshing the frontend lockfile. Re-run `npm audit` after any dependency change.
 
 No hardcoded credentials or secrets are required to run the project. If you add integrations that need secrets, use environment variables and never commit them.
 
@@ -393,7 +425,13 @@ No hardcoded credentials or secrets are required to run the project. If you add 
 
 ## Documentation & Design References
 
-Additional design notes available in the repository:
+Additional design notes available in the repository. These are planning/review
+documents, not statements of delivered functionality:
 
 - `PROJECT_MEMORY.md` — architecture and subsystem reference
+- `file_structure.md` — current repository layout
 - `docs/architecture-audit.md` — architecture review
+- `docs/*-plan.md` and top-level `*_plan.md` files — future-phase plans
+
+Authentication is the final planned phase; none of these documents describe a
+production deployment or a completed security audit.
