@@ -73,7 +73,14 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
         self.assertEqual(exp["model_id"], "M-01")
         self.assertGreater(len(exp["top_contributions"]), 0)
 
-        cf = xai.counterfactual_explanation(85, ["conn_freq"])
+        cf = xai.counterfactual_explanation(
+            85,
+            ["conn_freq"],
+            baseline_features={"conn_freq": 1.0},
+            feature_values={"conn_freq": 12.5},
+            score_function=lambda features: int(features["conn_freq"] * 4),
+        )
+        self.assertEqual(cf["status"], "COMPUTED")
         self.assertLess(cf["simulated_score_if_baseline_restored"], 85)
 
     def test_response_escalation_engine(self):
@@ -83,13 +90,35 @@ class TestAutonomousDefensePlatform(unittest.TestCase):
 
     def test_posture_engine_and_replay_lab(self):
         spe = SecurityPostureEngine()
-        score_res = spe.calculate_posture_score(detection_score=90, learning_score=85, response_score=95)
+        score_res = spe.calculate_posture_score(
+            detection_score=90,
+            learning_score=85,
+            response_score=95,
+            asset_risk_score=88,
+            model_health=90,
+        )
         self.assertEqual(score_res["status"], "HEALTHY")
         self.assertGreaterEqual(score_res["overall_posture_score"], 80.0)
 
+        unknown_res = spe.calculate_posture_score(detection_score=90)
+        self.assertEqual(unknown_res["status"], "UNKNOWN")
+        self.assertIsNone(unknown_res["overall_posture_score"])
+
         lab = SecurityReplayLab()
-        res_lab = lab.run_scenario("ssh_bruteforce")
-        self.assertTrue(res_lab["benchmark_passed"])
+        not_run = lab.run_scenario("ssh_bruteforce")
+        self.assertEqual(not_run["status"], "NOT_RUN")
+        self.assertEqual(not_run["packets_replayed"], 0)
+
+        replayed = lab.run_scenario(
+            "ssh_bruteforce",
+            flow_logs=[
+                {"src_ip": "10.0.0.99", "dst_port": 22, "is_malicious": True},
+                {"src_ip": "10.0.0.50", "dst_port": 443, "is_malicious": False},
+            ],
+            current_rules=[{"ip": "10.0.0.99"}],
+        )
+        self.assertEqual(replayed["status"], "COMPLETED")
+        self.assertEqual(replayed["packets_replayed"], 2)
 
 if __name__ == "__main__":
     unittest.main()

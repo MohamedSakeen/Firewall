@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
@@ -14,49 +14,59 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
+const metricValue = (value) => value === null || value === undefined || value === '' ? '—' : String(value).toLocaleString();
+
 export default function NetworkTraffic() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [socketConnected, setSocketConnected] = useState(null);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        const data = await fetchTrafficSummary();
-        if (mounted) setSummary(data);
-      } catch {
-        console.warn('Failed to fetch traffic summary');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+  const loadSummary = useCallback(async () => {
+    try {
+      const data = await fetchTrafficSummary();
+      setSummary(data);
+      setError(null);
+    } catch {
+      setError('Unable to load traffic summary');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
+  useEffect(() => {
+    const initialTimer = setTimeout(loadSummary, 0);
+    const interval = setInterval(loadSummary, 10000);
+    let refreshTimer = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(loadSummary, 500);
+    };
 
     const socket = connectSocket();
-    socket.on('packet', (pkt) => {
-      setSummary(prev => {
-        if (!prev) return prev;
-        const isRx = pkt.src?.startsWith('10.');
-        return {
-          ...prev,
-          totalPackets: (prev.totalPackets || 0) + 1,
-          rxCount: isRx ? (prev.rxCount || 0) + 1 : (prev.rxCount || 0),
-          txCount: !isRx ? (prev.txCount || 0) + 1 : (prev.txCount || 0),
-        };
-      });
-    });
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
+    const socketTimer = setTimeout(() => setSocketConnected(socket.connected), 0);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('packet', scheduleRefresh);
 
     return () => {
-      mounted = false;
+      clearTimeout(initialTimer);
+      clearTimeout(socketTimer);
       clearInterval(interval);
-      socket.off('packet');
+      if (refreshTimer) clearTimeout(refreshTimer);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('packet', scheduleRefresh);
     };
-  }, []);
+  }, [loadSummary]);
+
+  const statusLabel = socketConnected === null ? 'CONNECTING…' : socketConnected ? 'STREAMING' : 'OFFLINE';
+  const statusColor = socketConnected ? 'var(--color-success)' : socketConnected === false ? 'var(--color-threat)' : 'var(--color-warning)';
 
   if (loading) {
     return (
@@ -89,23 +99,28 @@ export default function NetworkTraffic() {
 
   return (
     <div className="space-y-4">
-      {/* Header (Checklist Section 10) */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Traffic</h1>
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time packet counters, throughput volume, and session flows</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--color-success)' }}>
-          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
-          MONITORING
+        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: statusColor }}>
+          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
+          {statusLabel}
         </div>
       </div>
 
+      {error && (
+        <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard title="RX Packets" value={(summary?.rxCount ?? 0).toLocaleString()} subtitle="Received" status="healthy" />
-        <StatCard title="TX Packets" value={(summary?.txCount ?? 0).toLocaleString()} subtitle="Sent" />
-        <StatCard title="Active Connections" value={(activeConnections.length).toLocaleString()} subtitle="Recent sessions" />
-        <StatCard title="Total Packets (24h)" value={(summary?.totalPackets ?? 0).toLocaleString()} subtitle="In & Out" />
+        <StatCard title="RX Packets" value={metricValue(summary?.rxCount)} subtitle="Received" />
+        <StatCard title="TX Packets" value={metricValue(summary?.txCount)} subtitle="Sent" />
+        <StatCard title="Active Connections" value={metricValue(activeConnections.length)} subtitle="Recent sessions" />
+        <StatCard title="Packets Observed" value={metricValue(summary?.totalPackets)} subtitle="Since process start" />
       </div>
 
       <div className="rounded p-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
@@ -113,20 +128,23 @@ export default function NetworkTraffic() {
           Bandwidth Usage (packets/min)
         </div>
         <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={bandwidthData.length > 0 ? bandwidthData : [{ time: '00:00', rx: 0, tx: 0 }]}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-              <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
-              <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="rx" name="RX" stroke="#10B981" fill="rgba(16,185,129,0.08)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="tx" name="TX" stroke="#3B82F6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {bandwidthData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={bandwidthData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="rx" name="RX" stroke="#10B981" fill="rgba(16,185,129,0.08)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="tx" name="TX" stroke="#3B82F6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-xs" style={{ color: 'var(--text-muted)' }}>No bandwidth samples available</div>
+          )}
         </div>
       </div>
 
-      {/* Active Connections Table */}
       <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
           <div className="flex items-center gap-3">
@@ -156,6 +174,7 @@ export default function NetworkTraffic() {
                 { key: 'dst', label: 'Destination' },
                 { key: 'state', label: 'State' },
                 { key: 'bytes', label: 'Bytes' },
+                { key: 'duration', label: 'Duration' },
               ]}
             />
           </div>
@@ -169,22 +188,23 @@ export default function NetworkTraffic() {
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Destination</th>
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>State</th>
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Data</th>
+                <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Duration</th>
               </tr>
             </thead>
             <tbody className="font-mono text-xs">
               {filteredConnections.length === 0 && (
-                <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={4}>No active connections</td></tr>
+                <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>No active connections</td></tr>
               )}
               {pagedConnections.map(c => (
                 <tr
-                  key={c.id}
+                  key={c.id ?? `${c.src || ''}-${c.dst || ''}`}
                   className="transition-colors"
                   style={{ borderBottom: '1px solid var(--border-subtle)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <td className="px-3 py-2" style={{ color: 'var(--color-primary)' }}>{c.src}</td>
-                  <td className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>{c.dst}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--color-primary)' }}>{c.src ?? '—'}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>{c.dst ?? '—'}</td>
                   <td className="px-3 py-2">
                     <span
                       className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]"
@@ -193,17 +213,17 @@ export default function NetworkTraffic() {
                         color: c.state === 'ESTABLISHED' ? 'var(--color-success)' : 'var(--text-muted)',
                       }}
                     >
-                      {c.state}
+                      {c.state ?? '—'}
                     </span>
                   </td>
-                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.bytes}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.bytes ?? '—'}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.duration ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* 50 records/page Pagination (Checklist Section 12) */}
         <Pagination
           totalItems={filteredConnections.length}
           currentPage={currentPage}

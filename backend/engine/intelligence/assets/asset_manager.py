@@ -8,7 +8,7 @@ class AssetManager:
     def register_asset(self, ip, hostname="", role="Workstation", criticality="MEDIUM", segment="INTERNAL", owner="IT"):
         asset = {
             "ip": ip,
-            "hostname": hostname or f"host-{ip.replace('.', '-')}",
+            "hostname": hostname or "",
             "role": role,
             "criticality": criticality,
             "segment": segment,

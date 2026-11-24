@@ -31,8 +31,8 @@ export function exportToCsv(filename, records, columns = null) {
   }
 
   // Determine headers
-  let keys = [];
-  let headers = [];
+  let keys;
+  let headers;
 
   if (columns && columns.length > 0) {
     keys = columns.map(c => c.key);

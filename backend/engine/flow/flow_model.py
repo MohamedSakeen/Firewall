@@ -62,7 +62,7 @@ class Flow:
         self.duration = self.end_time - self.start_time
         self.packet_count += 1
         
-        pkt_size = packet.get("payload_size", 0) or packet.get("size", 64)
+        pkt_size = packet.get("payload_size") or packet.get("size") or 0
         self.packet_sizes.append(pkt_size)
         if len(self.packet_sizes) > 100:
             self.packet_sizes.pop(0)

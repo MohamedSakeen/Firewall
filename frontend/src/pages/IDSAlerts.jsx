@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, ChevronRight, ShieldBan, CheckCircle } from 'lucide-react';
 import { fetchAlerts, blockIp } from '../services/api';
 import { connectSocket } from '../services/socket';
@@ -18,49 +18,56 @@ const severityStyle = (sev) => {
 export default function IDSAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [blockReason, setBlockReason] = useState('');
+  const [blockDuration, setBlockDuration] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
   const [blockingStatus, setBlockingStatus] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        const data = await fetchAlerts();
-        if (mounted) setAlerts(data || []);
-      } catch {
-        console.warn('Failed to fetch alerts');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
-
-    const socket = connectSocket();
-    socket.on('alert', (newAlert) => {
-      setAlerts(prev => [newAlert, ...prev]);
-    });
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-      socket.off('alert');
-    };
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await fetchAlerts();
+      setAlerts(Array.isArray(data) ? data : []);
+      setError(null);
+    } catch {
+      setError('Unable to load IDS alerts');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    const initialTimer = setTimeout(loadAlerts, 0);
+    const interval = setInterval(loadAlerts, 15000);
+    const socket = connectSocket();
+    const onAlert = (newAlert) => setAlerts(prev => [newAlert, ...prev]);
+    socket.on('alert', onAlert);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+      socket.off('alert', onAlert);
+    };
+  }, [loadAlerts]);
+
+  const handleSelectAlert = (alert) => {
+    setSelectedAlert(alert);
+    setBlockReason('');
+    setBlockDuration('');
+    setNotification(null);
+  };
+
   const handleBlockIp = async () => {
-    if (!selectedAlert || !selectedAlert.src_ip) return;
+    if (!selectedAlert?.src_ip || !blockReason.trim() || !blockDuration.trim()) return;
     setBlockingStatus(true);
     try {
-      await blockIp(selectedAlert.src_ip, selectedAlert.attack || 'IDS Alert Block');
-      setNotification({ type: 'success', message: `IP ${selectedAlert.src_ip} successfully quarantined` });
+      await blockIp({ ip: selectedAlert.src_ip, reason: blockReason.trim(), duration: Number(blockDuration) });
+      setNotification({ type: 'success', message: `Block applied to ${selectedAlert.src_ip}` });
     } catch {
-      setNotification({ type: 'error', message: 'Failed to block IP' });
+      setNotification({ type: 'error', message: 'Failed to apply block' });
     } finally {
       setBlockingStatus(false);
       setTimeout(() => setNotification(null), 4000);
@@ -80,10 +87,13 @@ export default function IDSAlerts() {
 
   const startIndex = (currentPage - 1) * pageSize;
   const pagedAlerts = filteredAlerts.slice(startIndex, startIndex + pageSize);
+  const inputStyle = {
+    background: 'var(--bg-inset)', border: '1px solid var(--border-strong)', color: 'var(--text-primary)',
+    borderRadius: 'var(--radius)', fontSize: '12px', padding: '5px 8px', outline: 'none', width: '100%',
+  };
 
   return (
     <div className="flex flex-col h-full space-y-3">
-      {/* Notification */}
       {notification && (
         <div
           className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium"
@@ -97,8 +107,12 @@ export default function IDSAlerts() {
           {notification.message}
         </div>
       )}
+      {error && (
+        <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
+          {error}
+        </div>
+      )}
 
-      {/* Header (Checklist Section 10) */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">IDS Alerts</h1>
@@ -122,44 +136,42 @@ export default function IDSAlerts() {
             data={filteredAlerts}
             currentPageData={pagedAlerts}
             columns={[
+              { key: 'alert_id', label: 'Alert ID' },
               { key: 'timestamp', label: 'Timestamp' },
               { key: 'src_ip', label: 'Source IP' },
               { key: 'attack', label: 'Signature' },
               { key: 'severity', label: 'Severity' },
               { key: 'score', label: 'Score' },
+              { key: 'action', label: 'Action' },
             ]}
           />
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex flex-1 gap-3 overflow-hidden">
-        {/* Alert table */}
         <div className="flex-1 rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
           <div className="overflow-auto flex-1">
             <table className="w-full text-left">
               <thead>
                 <tr className="sticky top-0" style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)', zIndex: 1 }}>
-                  {['Time', 'Alert ID', 'Severity', 'Source IP', 'Signature', 'Score'].map(h => (
+                  {['Time', 'Alert ID', 'Severity', 'Source IP', 'Signature', 'Score', 'Action'].map(h => (
                     <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={6}>Loading alerts...</td></tr>
+                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={7}>Loading alerts...</td></tr>
                 )}
                 {!loading && filteredAlerts.length === 0 && (
-                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={6}>No alerts matching filter</td></tr>
+                  <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={7}>No alerts matching filter</td></tr>
                 )}
-                {pagedAlerts.map((alert, i) => {
-                  const sev = severityStyle(alert.severity);
-                  const isSelected = selectedAlert === alert;
-                  const itemIndex = startIndex + i;
+                {pagedAlerts.map((alert) => {
+                  const isSelected = selectedAlert?.alert_id && selectedAlert.alert_id === alert.alert_id;
                   return (
                     <tr
-                      key={itemIndex}
-                      onClick={() => setSelectedAlert(alert)}
+                      key={alert.alert_id || `${alert.timestamp || ''}-${alert.attack || ''}`}
+                      onClick={() => handleSelectAlert(alert)}
                       className="cursor-pointer transition-colors"
                       style={{
                         borderBottom: '1px solid var(--border-subtle)',
@@ -169,14 +181,15 @@ export default function IDSAlerts() {
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                       onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{alert.timestamp?.split(' ')[1]?.split('.')[0] || alert.timestamp}</td>
-                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--color-primary)' }}>ALT-{String(itemIndex + 1).padStart(3, '0')}</td>
+                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{alert.timestamp ?? '—'}</td>
+                      <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--color-primary)' }}>{alert.alert_id ?? '—'}</td>
                       <td className="px-3 py-2">
-                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={sev}>{alert.severity?.toUpperCase()}</span>
+                        <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={severityStyle(alert.severity)}>{alert.severity ? String(alert.severity).toUpperCase() : '—'}</span>
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-threat)' }}>{alert.src_ip}</td>
-                      <td className="px-3 py-2 text-sm" style={{ color: 'var(--text-primary)' }}>{alert.attack}</td>
-                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-warning)' }}>{alert.score}</td>
+                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-threat)' }}>{alert.src_ip ?? '—'}</td>
+                      <td className="px-3 py-2 text-sm" style={{ color: 'var(--text-primary)' }}>{alert.attack ?? '—'}</td>
+                      <td className="px-3 py-2 font-mono text-xs font-medium" style={{ color: 'var(--color-warning)' }}>{alert.score ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{alert.action ?? '—'}</td>
                     </tr>
                   );
                 })}
@@ -184,7 +197,6 @@ export default function IDSAlerts() {
             </table>
           </div>
 
-          {/* 50 records/page Pagination (Checklist Section 12) */}
           <Pagination
             totalItems={filteredAlerts.length}
             currentPage={currentPage}
@@ -193,7 +205,6 @@ export default function IDSAlerts() {
           />
         </div>
 
-        {/* Detail panel */}
         {selectedAlert && (
           <div
             className="shrink-0 overflow-y-auto flex flex-col rounded"
@@ -207,32 +218,48 @@ export default function IDSAlerts() {
               <div>
                 <div className="flex justify-between items-end mb-1">
                   <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Matched Signature</span>
-                  <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={severityStyle(selectedAlert.severity)}>{selectedAlert.severity?.toUpperCase()}</span>
+                  <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={severityStyle(selectedAlert.severity)}>{selectedAlert.severity ? String(selectedAlert.severity).toUpperCase() : '—'}</span>
                 </div>
-                <div className="rounded p-2 text-sm font-medium" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}>{selectedAlert.attack}</div>
+                <div className="rounded p-2 text-sm font-medium" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)', color: 'var(--text-heading)' }}>{selectedAlert.attack ?? '—'}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Alert ID</span>
+                  <div className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlert.alert_id ?? '—'}</div>
+                </div>
+                <div>
                   <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Source IP</span>
-                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--color-threat)' }}>{selectedAlert.src_ip}</div>
+                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--color-threat)' }}>{selectedAlert.src_ip ?? '—'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Threat Score</span>
-                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--color-warning)' }}>{selectedAlert.score} / 100</div>
+                  <div className="font-mono text-sm font-medium" style={{ color: 'var(--color-warning)' }}>{selectedAlert.score ?? '—'}</div>
                 </div>
                 <div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Recorded Action</span>
+                  <div className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlert.action ?? '—'}</div>
+                </div>
+                <div className="col-span-2">
                   <span className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Timestamp</span>
-                  <div className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlert.timestamp}</div>
+                  <div className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlert.timestamp ?? '—'}</div>
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+              <div className="space-y-2" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+                <div>
+                  <label className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Block Reason</label>
+                  <input type="text" value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="Enter reason" style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium uppercase tracking-wider block mb-0.5" style={{ color: 'var(--text-muted)' }}>Duration (seconds)</label>
+                  <input type="number" min="1" value={blockDuration} onChange={e => setBlockDuration(e.target.value)} placeholder="Enter duration" style={inputStyle} />
+                </div>
                 <button
                   onClick={handleBlockIp}
-                  disabled={blockingStatus}
-                  className="w-full py-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-                  style={{ background: 'var(--danger)', color: '#fff', opacity: blockingStatus ? 0.6 : 1 }}
+                  disabled={blockingStatus || !blockReason.trim() || !blockDuration.trim() || !selectedAlert.src_ip}
+                  className="w-full py-2 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                  style={{ background: 'var(--danger)', color: '#fff' }}
                 >
                   <ShieldBan size={14} />
                   {blockingStatus ? 'Applying Block...' : 'Quarantine Source IP'}

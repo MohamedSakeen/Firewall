@@ -6,17 +6,17 @@ class DatasetRegistry:
     label distributions, and data quality metrics.
     """
     def __init__(self):
-        self.datasets = {}  # dataset_id -> dict
+        self.datasets = {}
 
-    def register_dataset(self, dataset_id, version, sample_count=1000, feature_schema="v1.0", label_distribution=None):
+    def register_dataset(self, dataset_id, version, sample_count=None, feature_schema=None, label_distribution=None, quality_status=None):
         rec = {
             "dataset_id": dataset_id,
             "version": version,
             "sample_count": sample_count,
             "feature_schema": feature_schema,
-            "label_distribution": label_distribution or {"benign": 0.85, "malicious": 0.15},
+            "label_distribution": label_distribution or {},
             "created_at": time.time(),
-            "quality_status": "VERIFIED"
+            "quality_status": quality_status if quality_status else "UNKNOWN"
         }
         self.datasets[dataset_id] = rec
         return rec

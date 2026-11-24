@@ -5,21 +5,21 @@ class ModelGovernanceManager:
     Tracks ML model lifecycle (DEVELOPMENT -> CANDIDATE -> SHADOW -> VALIDATED -> PRODUCTION),
     dataset lineage, drift scores, and promotion rollback.
     """
-    STAGES = ["DEVELOPMENT", "CANDIDATE", "SHADOW", "VALIDATED", "PRODUCTION", "DEPRECATED"]
+    STAGES = ["UNKNOWN", "DEVELOPMENT", "CANDIDATE", "SHADOW", "VALIDATED", "PRODUCTION", "DEPRECATED"]
 
     def __init__(self):
-        self.registered_models = {}  # model_id -> model_info
+        self.registered_models = {}
 
-    def register_model(self, model_id, model_name, version="1.0.0", dataset_version="DS-V1"):
+    def register_model(self, model_id, model_name, version=None, dataset_version=None, status=None, validation_metrics=None):
         info = {
             "model_id": model_id,
             "name": model_name,
             "version": version,
             "dataset_version": dataset_version,
-            "status": "DEVELOPMENT",
+            "status": status if status in self.STAGES else "UNKNOWN",
             "registered_at": time.time(),
             "last_promoted": None,
-            "validation_metrics": {"accuracy": 0.95, "false_positive_rate": 0.01}
+            "validation_metrics": validation_metrics or {}
         }
         self.registered_models[model_id] = info
         return info

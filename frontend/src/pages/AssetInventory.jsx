@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, X, Search } from 'lucide-react';
-import axios from 'axios';
+import { fetchAssets, registerAsset } from '../services/api';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
 
@@ -13,39 +13,60 @@ const critStyle = (crit) => {
   }
 };
 
+const display = (value) => value === null || value === undefined || value === '' ? '—' : value;
+
+const formatTime = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return new Date(value * 1000).toLocaleString();
+  return display(value);
+};
+
+const emptyAsset = { ip: '', hostname: '', role: '', criticality: '', segment: '', owner: '' };
+
 export default function AssetInventory() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [newAsset, setNewAsset] = useState(emptyAsset);
   const pageSize = 50;
-  const [newAsset, setNewAsset] = useState({ ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT' });
 
-  useEffect(() => { fetchAssets(); }, []);
-
-  const fetchAssets = async () => {
-    setLoading(true);
+  const loadAssets = useCallback(async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/assets');
-      setAssets(res.data.assets || []);
-    } catch (err) {
-      console.error(err);
+      const data = await fetchAssets();
+      setAssets(Array.isArray(data?.assets) ? data.assets : []);
+      setError(null);
+    } catch {
+      setError('Unable to load assets');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(loadAssets, 0);
+    return () => clearTimeout(timer);
+  }, [loadAssets]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newAsset.ip) return;
+    if (!newAsset.ip.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/assets', newAsset);
+      await registerAsset({
+        ip: newAsset.ip.trim(),
+        hostname: newAsset.hostname.trim(),
+        role: newAsset.role.trim(),
+        criticality: newAsset.criticality,
+        segment: newAsset.segment.trim(),
+        owner: newAsset.owner.trim(),
+      });
       setShowAddModal(false);
-      setNewAsset({ ip: '', hostname: '', role: 'Workstation', criticality: 'MEDIUM', segment: 'INTERNAL', owner: 'IT' });
-      fetchAssets();
-    } catch (err) {
-      console.error(err);
+      setNewAsset(emptyAsset);
+      setError(null);
+      await loadAssets();
+    } catch {
+      setError('Unable to register asset');
     }
   };
 
@@ -72,11 +93,10 @@ export default function AssetInventory() {
 
   return (
     <div className="space-y-4">
-      {/* Header (Checklist Section 10) */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Assets</h1>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Host criticality, segmentation, and security posture</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Host criticality, segmentation, and observed posture</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -102,6 +122,10 @@ export default function AssetInventory() {
               { key: 'segment', label: 'Segment' },
               { key: 'owner', label: 'Owner' },
               { key: 'criticality', label: 'Criticality' },
+              { key: 'packet_count', label: 'Observed Packets' },
+              { key: 'normal_services', label: 'Normal Services' },
+              { key: 'bytes', label: 'Observed Bytes' },
+              { key: 'last_seen', label: 'Last Seen' },
             ]}
           />
 
@@ -115,44 +139,53 @@ export default function AssetInventory() {
         </div>
       </div>
 
-      {/* Assets Table */}
+      {error && (
+        <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
+          {error}
+        </div>
+      )}
+
       <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)' }}>
-                {['IP / Hostname', 'Role', 'Segment', 'Owner', 'Criticality'].map(h => (
+                {['IP / Hostname', 'Role', 'Segment', 'Owner', 'Criticality', 'Observed', 'Last Seen'].map(h => (
                   <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="text-sm">
-              {loading && <tr><td className="px-3 py-6 text-center text-xs text-[var(--text-muted)]" colSpan={5}>Loading assets...</td></tr>}
-              {!loading && filteredAssets.length === 0 && <tr><td className="px-3 py-6 text-center text-xs text-[var(--text-muted)]" colSpan={5}>No assets registered</td></tr>}
+              {loading && <tr><td className="px-3 py-6 text-center text-xs text-[var(--text-muted)]" colSpan={7}>Loading assets...</td></tr>}
+              {!loading && filteredAssets.length === 0 && <tr><td className="px-3 py-6 text-center text-xs text-[var(--text-muted)]" colSpan={7}>No assets registered</td></tr>}
               {pagedAssets.map((asset, idx) => (
-                <tr key={startIndex + idx} className="transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                <tr key={asset.ip ?? `asset-${startIndex + idx}`} className="transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   <td className="px-3 py-2">
-                    <div className="font-mono text-xs font-medium text-[var(--text-primary)]">{asset.ip}</div>
-                    <div className="text-[10px] text-[var(--text-muted)]">{asset.hostname}</div>
+                    <div className="font-mono text-xs font-medium text-[var(--text-primary)]">{display(asset.ip)}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">{display(asset.hostname)}</div>
                   </td>
-                  <td className="px-3 py-2 text-xs text-[var(--text-secondary)]">{asset.role}</td>
-                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--color-primary)' }}>{asset.segment}</td>
-                  <td className="px-3 py-2 text-xs text-[var(--text-secondary)]">{asset.owner}</td>
+                  <td className="px-3 py-2 text-xs text-[var(--text-secondary)]">{display(asset.role)}</td>
+                  <td className="px-3 py-2 font-mono text-xs" style={{ color: 'var(--color-primary)' }}>{display(asset.segment)}</td>
+                  <td className="px-3 py-2 text-xs text-[var(--text-secondary)]">{display(asset.owner)}</td>
                   <td className="px-3 py-2">
                     <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]" style={critStyle(asset.criticality)}>
-                      {asset.criticality}
+                      {display(asset.criticality)}
                     </span>
                   </td>
+                  <td className="px-3 py-2 text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <div>{display(asset.packet_count)} pkts / {display(asset.bytes)} B</div>
+                    <div>{(asset.normal_services || []).join(', ') || '—'}</div>
+                  </td>
+                  <td className="px-3 py-2 text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{formatTime(asset.last_seen)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* 50 records/page Pagination (Checklist Section 12) */}
         <Pagination
           totalItems={filteredAssets.length}
           currentPage={currentPage}
@@ -161,7 +194,6 @@ export default function AssetInventory() {
         />
       </div>
 
-      {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
           <div className="w-full max-w-md rounded space-y-3 p-4" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-strong)' }}>
@@ -172,21 +204,35 @@ export default function AssetInventory() {
             <form onSubmit={handleCreate} className="space-y-2.5">
               <div>
                 <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">IP Address</label>
-                <input type="text" required placeholder="e.g. 10.0.0.50" value={newAsset.ip} onChange={(e) => setNewAsset({...newAsset, ip: e.target.value})} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
+                <input type="text" required placeholder="IP address" value={newAsset.ip} onChange={(e) => setNewAsset({ ...newAsset, ip: e.target.value })} style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }} />
               </div>
               <div>
                 <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Hostname</label>
-                <input type="text" placeholder="e.g. app-worker-01" value={newAsset.hostname} onChange={(e) => setNewAsset({...newAsset, hostname: e.target.value})} style={inputStyle} />
+                <input type="text" placeholder="Hostname" value={newAsset.hostname} onChange={(e) => setNewAsset({ ...newAsset, hostname: e.target.value })} style={inputStyle} />
               </div>
-              <div>
-                <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Role</label>
-                <input type="text" placeholder="e.g. API Gateway" value={newAsset.role} onChange={(e) => setNewAsset({...newAsset, role: e.target.value})} style={inputStyle} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Role</label>
+                  <input type="text" required placeholder="Role" value={newAsset.role} onChange={(e) => setNewAsset({ ...newAsset, role: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Criticality</label>
+                  <select required value={newAsset.criticality} onChange={(e) => setNewAsset({ ...newAsset, criticality: e.target.value })} style={inputStyle}>
+                    <option value="">Select criticality</option>
+                    <option value="UNKNOWN">UNKNOWN</option>
+                    <option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="HIGH">HIGH</option><option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Criticality</label>
-                <select value={newAsset.criticality} onChange={(e) => setNewAsset({...newAsset, criticality: e.target.value})} style={inputStyle}>
-                  <option value="LOW">LOW</option><option value="MEDIUM">MEDIUM</option><option value="HIGH">HIGH</option><option value="CRITICAL">CRITICAL</option>
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Segment</label>
+                  <input type="text" required placeholder="Segment" value={newAsset.segment} onChange={(e) => setNewAsset({ ...newAsset, segment: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium mb-0.5 text-[var(--text-muted)]">Owner</label>
+                  <input type="text" required placeholder="Owner" value={newAsset.owner} onChange={(e) => setNewAsset({ ...newAsset, owner: e.target.value })} style={inputStyle} />
+                </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-3 py-1.5 text-xs font-medium rounded text-[var(--text-secondary)]">Cancel</button>

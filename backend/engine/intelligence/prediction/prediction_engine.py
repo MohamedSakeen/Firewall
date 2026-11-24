@@ -30,26 +30,91 @@ class PredictionShadowEngine:
         ]
     }
 
-    def __init__(self):
-        self.shadow_predictions = []  # dict records
+    def __init__(self, probability_provider=None, learned_probabilities=None):
+        self.shadow_predictions = []
         self.evaluated_count = 0
         self.top1_correct = 0
+        self.probability_provider = probability_provider
+        self.learned_probabilities = learned_probabilities or {}
+
+    def _normalize_probabilities(self, raw):
+        if not raw:
+            return []
+        if isinstance(raw, dict):
+            raw = [{"next_stage": key, "probability": value} for key, value in raw.items()]
+
+        normalized = []
+        for entry in raw:
+            if isinstance(entry, (list, tuple)) and len(entry) == 2:
+                entry = {"next_stage": entry[0], "probability": entry[1]}
+            if not isinstance(entry, dict):
+                continue
+            next_stage = entry.get("next_stage")
+            probability = entry.get("probability")
+            if not next_stage or isinstance(probability, bool) or not isinstance(probability, (int, float)):
+                continue
+            probability = float(probability)
+            if probability > 1:
+                probability /= 100.0
+            normalized.append({"next_stage": next_stage, "probability": probability})
+        return normalized
+
+    def _observed_probabilities(self, current_stage):
+        try:
+            from engine.intelligence.attack_stage.transition_engine import global_transition_engine
+            histories = getattr(global_transition_engine, "incident_stage_history", {})
+        except Exception:
+            return []
+
+        counts = {}
+        for history in histories.values():
+            for transition in history:
+                if transition.get("previous_stage") != current_stage:
+                    continue
+                next_stage = transition.get("new_stage")
+                if not next_stage:
+                    continue
+                counts[next_stage] = counts.get(next_stage, 0) + 1
+
+        total = sum(counts.values())
+        if total == 0:
+            return []
+        return [
+            {"next_stage": next_stage, "probability": count / total}
+            for next_stage, count in counts.items()
+        ]
+
+    def _get_probabilities(self, current_stage):
+        if self.probability_provider is not None:
+            try:
+                provided = self.probability_provider(current_stage)
+            except Exception:
+                provided = None
+            normalized = self._normalize_probabilities(provided)
+            if normalized:
+                return normalized
+
+        normalized = self._normalize_probabilities(self.learned_probabilities.get(current_stage))
+        if normalized:
+            return normalized
+
+        observed = self._observed_probabilities(current_stage)
+        if observed:
+            return observed
+
+        return self._normalize_probabilities(self.STAGE_PROBABILITIES.get(current_stage))
 
     def predict_next_stage_shadow(self, incident_id, current_stage):
-        predictions = self.STAGE_PROBABILITIES.get(current_stage, [
-            {"next_stage": "RECONNAISSANCE", "probability": 0.50},
-            {"next_stage": "UNKNOWN", "probability": 0.50}
-        ])
-
-        top_pred = max(predictions, key=lambda x: x["probability"])
+        predictions = self._get_probabilities(current_stage)
+        top_pred = max(predictions, key=lambda item: item["probability"]) if predictions else None
         rec = {
             "prediction_id": f"PRED-{uuid.uuid4().hex[:6].upper()}",
             "incident_id": incident_id,
             "current_stage": current_stage,
             "predictions": predictions,
-            "top_prediction": top_pred["next_stage"],
+            "top_prediction": top_pred["next_stage"] if top_pred else None,
             "mode": "SHADOW",
-            "inference_level": "PREDICTED",
+            "inference_level": "PREDICTED" if predictions else "UNKNOWN",
             "created_at": time.time(),
             "actual_outcome": None,
             "evaluated": False
@@ -69,11 +134,18 @@ class PredictionShadowEngine:
         return False
 
     def get_metrics(self):
-        acc = (self.top1_correct / max(1, self.evaluated_count)) * 100.0 if self.evaluated_count > 0 else 91.5
+        if self.evaluated_count == 0:
+            return {
+                "evaluated_predictions": 0,
+                "top1_accuracy_pct": None,
+                "precision_pct": None,
+                "mode": "SHADOW_ADVISORY"
+            }
+        accuracy = (self.top1_correct / self.evaluated_count) * 100.0
         return {
-            "evaluated_predictions": self.evaluated_count or 42,
-            "top1_accuracy_pct": round(acc, 1),
-            "precision_pct": round(acc, 1),
+            "evaluated_predictions": self.evaluated_count,
+            "top1_accuracy_pct": round(accuracy, 1),
+            "precision_pct": round(accuracy, 1),
             "mode": "SHADOW_ADVISORY"
         }
 

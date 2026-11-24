@@ -58,54 +58,32 @@ export default function Sidebar() {
   return (
     <div
       className="flex flex-col h-screen shrink-0 relative transition-all duration-200"
-      style={{
-        width: collapsed ? 56 : 220,
-        background: 'var(--bg-panel)',
-        borderRight: '1px solid var(--border-subtle)',
-      }}
+      style={{ width: collapsed ? 56 : 220, background: 'var(--bg-panel)', borderRight: '1px solid var(--border-subtle)' }}
     >
-      {/* Brand & Fixed Toggle (Checklist Section 8) */}
-      <div
-        className="flex items-center shrink-0 overflow-hidden"
-        style={{
-          height: 44,
-          padding: '0 16px',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
+      <div className="flex items-center shrink-0 overflow-hidden" style={{ height: 44, padding: '0 16px', borderBottom: '1px solid var(--border-subtle)' }}>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? "Open navigation" : "Close navigation"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? 'Open navigation' : 'Close navigation'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="flex items-center justify-center w-6 h-6 rounded transition-colors shrink-0"
-          style={{
-            color: 'var(--text-secondary)',
-            background: 'transparent',
-          }}
+          style={{ color: 'var(--text-secondary)', background: 'transparent' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
         >
           {collapsed ? <Menu size={16} /> : <X size={16} />}
         </button>
         {!collapsed && (
-          <span
-            className="ml-3 font-semibold text-sm tracking-wide whitespace-nowrap overflow-hidden text-ellipsis"
-            style={{ color: 'var(--text-heading)' }}
-          >
+          <span className="ml-3 font-semibold text-sm tracking-wide whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: 'var(--text-heading)' }}>
             ValaiAran
           </span>
         )}
       </div>
 
-      {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: 'thin' }}>
         {navSections.map((section) => (
           <div key={section.label} className="mb-1">
             {!collapsed && (
-              <div
-                className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <div className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                 {section.label}
               </div>
             )}
@@ -118,15 +96,7 @@ export default function Sidebar() {
                     key={item.path}
                     to={item.path}
                     title={collapsed ? item.label : undefined}
-                    className={({ isActive }) =>
-                      `flex items-center rounded transition-colors ${
-                        collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-1.5'
-                      } ${
-                        isActive
-                          ? ''
-                          : ''
-                      }`
-                    }
+                    className={`flex items-center rounded transition-colors ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-1.5'}`}
                     style={({ isActive }) => ({
                       background: isActive ? 'var(--accent-muted)' : 'transparent',
                       color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
@@ -135,9 +105,7 @@ export default function Sidebar() {
                     })}
                   >
                     <Icon size={16} className="shrink-0" style={{ marginRight: collapsed ? 0 : 8 }} />
-                    {!collapsed && (
-                      <span className="whitespace-nowrap truncate">{item.label}</span>
-                    )}
+                    {!collapsed && <span className="whitespace-nowrap truncate">{item.label}</span>}
                   </NavLink>
                 );
               })}
@@ -146,18 +114,8 @@ export default function Sidebar() {
         ))}
       </div>
 
-      {/* Footer */}
-      <div
-        className="flex items-center shrink-0 overflow-hidden"
-        style={{
-          height: 40,
-          padding: collapsed ? '0 16px' : '0 16px',
-          borderTop: '1px solid var(--border-subtle)',
-          color: 'var(--text-muted)',
-          fontSize: '11px',
-        }}
-      >
-        {!collapsed && <span className="whitespace-nowrap">v2.1.0</span>}
+      <div className="flex items-center shrink-0 overflow-hidden" style={{ height: 40, padding: '0 16px', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '11px' }}>
+        {!collapsed && <span className="whitespace-nowrap">{import.meta.env.VITE_APP_VERSION || 'dev'}</span>}
       </div>
     </div>
   );

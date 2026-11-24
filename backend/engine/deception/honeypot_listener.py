@@ -2,12 +2,20 @@ import time
 
 class DecoyHoneypotListener:
     """
-    Decoy Honeypot listener monitoring unallocated decoy ports (e.g. 2222, 8080, 33890).
-    Any connection attempt triggers high-confidence honeypot signals (97% anomaly score).
+    Decoy Honeypot listener monitoring configured decoy ports.
+    Connection attempts are recorded as honeypot signals without inventing confidence values.
     """
     def __init__(self, decoy_ports=None):
-        self.decoy_ports = set(decoy_ports or [2222, 8080, 33890])
+        self.decoy_ports = set(decoy_ports or [])
         self.honeypot_hits = []
+
+    def add_decoy(self, port):
+        self.decoy_ports.add(port)
+        return port
+
+    def configure_decoy_ports(self, ports):
+        self.decoy_ports = set(ports or [])
+        return sorted(self.decoy_ports)
 
     def check_packet(self, packet):
         dst_port = packet.get("dst_port")
@@ -17,12 +25,12 @@ class DecoyHoneypotListener:
                 "src_ip": packet.get("src_ip"),
                 "dst_port": dst_port,
                 "timestamp": time.time(),
-                "confidence_score": 0.97,
+                "confidence_score": None,
                 "signal": "honeypot_touch"
             }
             self.honeypot_hits.append(hit)
             return True, hit
-            
+
         return False, None
 
 global_honeypot_listener = DecoyHoneypotListener()

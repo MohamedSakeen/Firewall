@@ -60,22 +60,80 @@ def create_app():
 
 def _run_sniffer():
     from scapy.all import sniff
-    from scapy.layers.inet import IP, TCP
-    from engine.packet.packet_normalizer import normalize_packet
-    from engine.firewall.engine import check_packet
+    from scapy.layers.inet import IP
+    from api.services.live_store import global_live_store, packet_direction
+    from api.services.websocket_service import (
+        broadcast_alert,
+        broadcast_incident_updated,
+        broadcast_packet,
+        broadcast_security_event,
+    )
+    from engine.IPS.ban_tracker import get_ban
     from engine.IDS.detection_pipeline import run_detection_pipeline
-    from api.services.websocket_service import broadcast_packet
+    from engine.firewall.engine import check_packet
+    from engine.flow.flow_tracker import global_flow_tracker
+    from engine.flow.window_aggregator import global_window_aggregator
+    from engine.intelligence.assets.asset_manager import global_asset_manager
+    from engine.intelligence.correlation.event_correlator import global_event_correlator
+    from engine.packet.packet_normalizer import normalize_packet
+    from engine.scoring.score_engine import calculate_threat_score
+    from engine.scoring.threat_tracker import get_threat_event
+
+    def register_observed_asset(ip, direction):
+        if not ip or ip in global_asset_manager.assets:
+            return
+        global_asset_manager.register_asset(
+            ip,
+            hostname="",
+            role="OBSERVED_ENDPOINT",
+            criticality="UNKNOWN",
+            segment="LOCAL" if direction in ("RX", "INTERNAL", "TX") else "REMOTE",
+            owner="UNKNOWN",
+        )
 
     def process_packet(packet):
-        if IP in packet and TCP in packet:
-            normalized = normalize_packet(packet)
-            broadcast_packet(normalized)
+        if IP not in packet:
+            return
 
-            src_ip = packet[IP].src
-            dst_port = packet[TCP].dport
-            firewall_result = check_packet(src_ip, dst_port)
-            print(f"{src_ip}:{packet[IP].dst}:{dst_port} -> {firewall_result}")
-            run_detection_pipeline(normalized, packet)
+        normalized = normalize_packet(packet)
+        src_ip = normalized.get("src_ip")
+        dst_ip = normalized.get("dst_ip")
+        if not src_ip or not dst_ip:
+            return
+
+        normalized["size"] = len(bytes(packet))
+        normalized["payload_size"] = len(bytes(packet.payload))
+        flow = global_flow_tracker.process_packet(normalized)
+        if flow is not None:
+            global_window_aggregator.add_flow_sample(flow.to_dict())
+
+        direction = packet_direction(src_ip, dst_ip)
+        register_observed_asset(src_ip, direction)
+        register_observed_asset(dst_ip, direction)
+
+        firewall_result = check_packet(src_ip, normalized.get("dst_port"))
+        alerts = run_detection_pipeline(normalized, packet)
+        threat_events = get_threat_event(src_ip)
+        score = calculate_threat_score(threat_events) if threat_events else 0
+
+        entry = global_live_store.record_packet(normalized, normalized["size"], firewall_result, score)
+        broadcast_packet(entry)
+
+        for alert in alerts:
+            ban = get_ban(src_ip)
+            action = "BLOCK" if ban else "ALERT"
+            record, event = global_live_store.record_alert(
+                alert,
+                destination_ip=dst_ip,
+                destination_port=normalized.get("dst_port"),
+                protocol=normalized.get("protocol"),
+                action=action,
+            )
+            incident = global_event_correlator.process_alert(record)
+            broadcast_alert(record)
+            broadcast_security_event(event)
+            if incident is not None:
+                broadcast_incident_updated(incident.to_dict())
 
     sniff(prn=process_packet, store=False)
 

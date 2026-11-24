@@ -1,22 +1,19 @@
 from datetime import datetime
 from api.api import socketio
 
-_packet_counter = 0
 
-def broadcast_packet(packet_data):
-    global _packet_counter
-    _packet_counter += 1
-    tcp_flags_str = str(packet_data.get("tcp_flags", "")) if packet_data.get("tcp_flags") is not None else "none"
-
+def broadcast_packet(entry):
     flat = {
-        "id": _packet_counter,
-        "time": datetime.now().strftime("%H:%M:%S.%f")[:12],
-        "src": f"{packet_data.get('src_ip', '?')}:{packet_data.get('src_port', '?')}",
-        "dst": f"{packet_data.get('dst_ip', '?')}:{packet_data.get('dst_port', '?')}",
-        "proto": packet_data.get("protocol", "?"),
-        "len": 64,
-        "flags": tcp_flags_str,
-        "score": 0,
+        "id": entry.get("timestamp"),
+        "time": datetime.fromtimestamp(entry["timestamp"]).strftime("%H:%M:%S.%f")[:12],
+        "src": f"{entry.get('src_ip')}:{entry.get('src_port')}",
+        "dst": f"{entry.get('dst_ip')}:{entry.get('dst_port')}",
+        "proto": entry.get("protocol"),
+        "len": entry.get("size"),
+        "flags": entry.get("tcp_flags"),
+        "score": entry.get("score"),
+        "direction": entry.get("direction"),
+        "decision": entry.get("decision"),
     }
     socketio.emit("packet", flat)
 

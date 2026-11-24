@@ -25,12 +25,69 @@ class AttackStagePredictor:
         ]
     }
 
+    def __init__(self, transition_provider=None, learned_transitions=None):
+        self.transition_provider = transition_provider
+        self.learned_transitions = learned_transitions or {}
+
+    def _normalize_transitions(self, raw):
+        if not raw:
+            return []
+        if isinstance(raw, dict):
+            raw = list(raw.items())
+
+        normalized = []
+        for entry in raw:
+            if isinstance(entry, dict):
+                next_stage = entry.get("next_stage")
+                probability = entry.get("probability")
+            elif isinstance(entry, (list, tuple)) and len(entry) == 2:
+                next_stage, probability = entry
+            else:
+                continue
+            if not next_stage or isinstance(probability, bool) or not isinstance(probability, (int, float)):
+                continue
+            probability = float(probability)
+            if probability > 1:
+                probability /= 100.0
+            normalized.append((next_stage, probability))
+        return normalized
+
+    def _observed_transitions(self, current_stage):
+        try:
+            from engine.intelligence.attack_stage.transition_engine import global_transition_engine
+            histories = getattr(global_transition_engine, "incident_stage_history", {})
+        except Exception:
+            return []
+
+        counts = {}
+        for history in histories.values():
+            for transition in history:
+                if transition.get("previous_stage") != current_stage:
+                    continue
+                next_stage = transition.get("new_stage")
+                if not next_stage:
+                    continue
+                counts[next_stage] = counts.get(next_stage, 0) + 1
+
+        total = sum(counts.values())
+        if total == 0:
+            return []
+        return [(next_stage, count / total) for next_stage, count in counts.items()]
+
     def predict_next_stages(self, current_stage):
-        transitions = self.STAGE_TRANSITIONS.get(current_stage, [
-            ("Monitoring", 0.70),
-            ("Unknown", 0.30)
-        ])
-        
+        transitions = []
+        if self.transition_provider is not None:
+            try:
+                transitions = self._normalize_transitions(self.transition_provider(current_stage))
+            except Exception:
+                transitions = []
+        if not transitions:
+            transitions = self._normalize_transitions(self.learned_transitions.get(current_stage))
+        if not transitions:
+            transitions = self._observed_transitions(current_stage)
+        if not transitions:
+            transitions = self._normalize_transitions(self.STAGE_TRANSITIONS.get(current_stage))
+
         predictions = []
         for next_stage, prob in transitions:
             predictions.append({
@@ -38,7 +95,7 @@ class AttackStagePredictor:
                 "probability": round(prob * 100, 1),
                 "confidence": "HIGH" if prob > 0.5 else "MEDIUM"
             })
-            
+
         return {
             "current_stage": current_stage,
             "predictions": predictions
