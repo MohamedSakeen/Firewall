@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = BACKEND_DIR / "data" / "firewall.db"
 
+SCHEMA_VERSION = 2
+
+# Durable event types accepted by storage.events. Kept here so the SQL CHECK
+# constraint and the Python allow-list cannot drift apart.
+EVENT_TYPES = ("packet", "alert", "incident", "block", "security_event")
+
+EVENT_TYPE_VALUES = ", ".join("'" + value + "'" for value in EVENT_TYPES)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +48,26 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);
 """
+
+EVENT_SCHEMA = f"""
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN ({EVENT_TYPE_VALUES})),
+    source_ip TEXT,
+    details TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(event_type, timestamp);
+"""
+
+# Each entry is applied once, in order, when the database's user_version is
+# lower than its version. New schema changes should add a new migration here.
+MIGRATIONS = {
+    1: SCHEMA,
+    2: EVENT_SCHEMA,
+}
 
 
 def utc_now():
@@ -74,12 +102,32 @@ def db_connection():
         conn.close()
 
 
+def _schema_version(conn):
+    row = conn.execute("PRAGMA user_version").fetchone()
+    return int(row[0]) if row else 0
+
+
 def init_db():
-    """Create the schema if needed and restrict the database file permissions."""
+    """Apply pending schema migrations and restrict database file permissions."""
     path = get_db_path()
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with db_connection() as conn:
-        conn.executescript(SCHEMA)
+        version = _schema_version(conn)
+        if version > SCHEMA_VERSION:
+            logger.warning(
+                "database schema version %d is newer than supported version %d",
+                version,
+                SCHEMA_VERSION,
+            )
+        else:
+            for target in sorted(MIGRATIONS):
+                if target > version:
+                    conn.executescript(MIGRATIONS[target])
+                    conn.execute(f"PRAGMA user_version = {target}")
+            if version == SCHEMA_VERSION:
+                # Re-apply idempotent DDL to repair a missing table or index.
+                conn.executescript(SCHEMA)
+                conn.executescript(EVENT_SCHEMA)
     try:
         os.chmod(path, 0o600)
     except OSError:

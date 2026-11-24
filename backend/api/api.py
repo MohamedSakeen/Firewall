@@ -19,9 +19,11 @@ from auth.api import auth_bp, limiter  # noqa: E402
 from auth.audit import audit_request  # noqa: E402
 from auth.db import init_db  # noqa: E402
 from auth.store import get_user_by_id  # noqa: E402
+from storage.events import record_event as persist_event  # noqa: E402
 
 logger = logging.getLogger(__name__)
 DEFAULT_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+FIREWALL_ROLES = ("all", "api", "worker")
 READ_METHODS = {"GET", "HEAD"}
 ADMIN_PATH_PREFIXES = (
     "/api/rules/",
@@ -47,8 +49,41 @@ def sniffer_enabled():
     return os.getenv("FIREWALL_ENABLE_SNIFFER", "false").strip().lower() in TRUTHY
 
 
+def get_firewall_role():
+    """Return the process role: all (default), api, or worker."""
+    role = os.getenv("FIREWALL_ROLE", "all").strip().lower()
+    if role in FIREWALL_ROLES:
+        return role
+    if role:
+        logger.warning("Invalid FIREWALL_ROLE; using 'all'")
+    return "all"
+
+
 def cookie_secure_enabled():
     return os.getenv("FIREWALL_COOKIE_SECURE", "false").strip().lower() in TRUTHY
+
+
+def _persist_event(event_type, payload):
+    """Best-effort durable write; capture must continue if storage fails."""
+    try:
+        return persist_event(event_type, payload)
+    except Exception:
+        logger.exception("could not persist %s event; capture continues", event_type)
+        return None
+
+
+def prune_expired_events(log=None):
+    """Apply the configured retention window during startup."""
+    log = log or logger
+    try:
+        from storage.events import prune_events
+
+        removed = prune_events()
+    except Exception:
+        log.exception("Event retention cleanup failed; startup continues")
+        return
+    if removed:
+        log.info("Removed %d expired events", removed)
 
 
 def _is_public_api_path(path):
@@ -104,6 +139,10 @@ def _configure_auth(app):
 
 
 socketio = SocketIO(cors_allowed_origins=get_allowed_origins())
+
+# A process runs at most one capture thread. Tests reset this through monkeypatch.
+_sniffer_lock = threading.Lock()
+_sniffer_thread = None
 
 
 def _apply_secure_headers(response):
@@ -164,6 +203,7 @@ def create_app():
     app.register_blueprint(auth_bp)
 
     _configure_auth(app)
+    prune_expired_events(app.logger)
 
     @app.route("/api/health", methods=["GET"])
     def health_check():
@@ -257,6 +297,17 @@ def _run_sniffer():
 
         entry = global_live_store.record_packet(normalized, normalized["size"], firewall_result, score)
         broadcast_packet(entry)
+        _persist_event("packet", {
+            "src_ip": src_ip,
+            "dst_ip": dst_ip,
+            "src_port": normalized.get("src_port"),
+            "dst_port": normalized.get("dst_port"),
+            "protocol": normalized.get("protocol"),
+            "size": normalized["size"],
+            "direction": direction,
+            "decision": firewall_result,
+            "score": score,
+        })
 
         for alert in alerts:
             ban = get_ban(src_ip)
@@ -271,8 +322,33 @@ def _run_sniffer():
             incident = global_event_correlator.process_alert(record)
             broadcast_alert(record)
             broadcast_security_event(event)
+            _persist_event("alert", {
+                "alert_id": record.get("alert_id"),
+                "src_ip": src_ip,
+                "dst_ip": dst_ip,
+                "attack": record.get("attack"),
+                "severity": record.get("severity"),
+                "score": record.get("score"),
+                "action": action,
+            })
+            _persist_event("security_event", {
+                "event_id": event.get("event_id"),
+                "event_type": event.get("event_type"),
+                "src_ip": event.get("source_ip"),
+                "dst_ip": event.get("destination_ip"),
+                "severity": event.get("severity"),
+                "threat_score": event.get("threat_score"),
+            })
             if incident is not None:
-                broadcast_incident_updated(incident.to_dict())
+                incident_data = incident.to_dict()
+                broadcast_incident_updated(incident_data)
+                _persist_event("incident", {
+                    "incident_id": incident_data.get("incident_id"),
+                    "src_ip": incident_data.get("attacker_ip"),
+                    "status": incident_data.get("status"),
+                    "severity": incident_data.get("severity"),
+                    "threat_score": incident_data.get("threat_score"),
+                })
 
     try:
         sniff(prn=process_packet, store=False)
@@ -281,17 +357,49 @@ def _run_sniffer():
 
 
 def start_sniffer_if_enabled(app=None):
+    """Start the single capture thread allowed in this process."""
+    global _sniffer_thread
     log = app.logger if app is not None else logger
+    role = get_firewall_role()
+    if role == "api":
+        log.info("FIREWALL_ROLE=api; packet capture is disabled")
+        return None
     if not sniffer_enabled():
         log.info("Packet sniffer disabled (set FIREWALL_ENABLE_SNIFFER=1 to enable)")
         return None
-    thread = threading.Thread(target=_run_sniffer, name="packet-sniffer", daemon=True)
-    thread.start()
+    with _sniffer_lock:
+        if _sniffer_thread is not None:
+            log.info("Packet sniffer already running in this process")
+            return _sniffer_thread
+        _sniffer_thread = threading.Thread(target=_run_sniffer, name="packet-sniffer", daemon=True)
+        _sniffer_thread.start()
     log.info("Packet sniffer enabled")
-    return thread
+    return _sniffer_thread
+
+
+def _wait_for_shutdown():
+    """Block until interrupted; overridable in tests."""
+    threading.Event().wait()
+
+
+def run_worker():
+    """Start capture only, with no HTTP or WebSocket server in this process."""
+    init_db()
+    prune_expired_events(logger)
+    thread = start_sniffer_if_enabled()
+    if thread is None:
+        logger.warning("Worker has no capture thread; check FIREWALL_ROLE and FIREWALL_ENABLE_SNIFFER")
+        return 2
+    try:
+        _wait_for_shutdown()
+    except KeyboardInterrupt:
+        logger.info("Capture worker stopped")
+    return 0
 
 
 def run_server():
+    if get_firewall_role() == "worker":
+        return run_worker()
     app = create_app()
     start_sniffer_if_enabled(app)
     host = os.getenv("FIREWALL_HOST", "127.0.0.1").strip() or "127.0.0.1"
@@ -303,7 +411,8 @@ def run_server():
         logger.warning("Invalid FIREWALL_PORT; using 5000")
         port = 5000
     socketio.run(app, host=host, port=port, debug=False)
+    return 0
 
 
 if __name__ == "__main__":
-    run_server()
+    raise SystemExit(run_server())
