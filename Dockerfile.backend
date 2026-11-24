@@ -1,0 +1,32 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN python -m venv /opt/venv \
+ && groupadd --system --gid 10001 netguard \
+ && useradd --system --uid 10001 --gid netguard --home-dir /app \
+    --no-create-home --shell /usr/sbin/nologin netguard
+
+WORKDIR /app/backend
+
+COPY backend/requirements.txt /tmp/backend-requirements.txt
+RUN python -m pip install --no-cache-dir -r /tmp/backend-requirements.txt \
+ && rm /tmp/backend-requirements.txt
+
+COPY --chown=netguard:netguard backend /app/backend
+RUN mkdir -p /app/data /app/backend/logs \
+ && chown -R netguard:netguard /app/data /app/backend
+
+USER netguard
+
+ENV FIREWALL_HOST=0.0.0.0 \
+    FIREWALL_PORT=5000 \
+    FIREWALL_DB_PATH=/app/data/firewall.db \
+    FIREWALL_ROLE=api \
+    FIREWALL_ENABLE_SNIFFER=0
+
+EXPOSE 5000
+CMD ["python", "api/api.py"]

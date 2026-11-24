@@ -1,0 +1,24 @@
+[Unit]
+Description=NetGuard local API
+After=network.target
+
+[Service]
+Type=simple
+User=netguard
+Group=netguard
+WorkingDirectory=/opt/netguard/backend
+EnvironmentFile=/etc/netguard/netguard.env
+Environment=FIREWALL_ROLE=api
+Environment=FIREWALL_ENABLE_SNIFFER=0
+ExecStart=/opt/netguard/backend/.venv/bin/python api/api.py
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netguard /opt/netguard/backend/logs
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

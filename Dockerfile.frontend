@@ -1,0 +1,28 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app/frontend
+
+ARG VITE_API_BASE_URL=http://127.0.0.1:5000/api
+ARG VITE_SOCKET_URL=http://127.0.0.1:5000
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_SOCKET_URL=$VITE_SOCKET_URL
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+# The repo keeps PostCSS config at the root; keep it outside the ESM frontend.
+COPY postcss.config.js /app/postcss.config.cjs
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+RUN mkdir -p /tmp/nginx/client /tmp/nginx/proxy /tmp/nginx/fastcgi \
+             /tmp/nginx/uwsgi /tmp/nginx/scgi \
+ && chown -R nginx:nginx /tmp/nginx
+
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+
+USER nginx
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]

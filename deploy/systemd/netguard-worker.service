@@ -1,0 +1,25 @@
+[Unit]
+Description=NetGuard capture worker (capture is opt-in)
+After=network.target
+
+[Service]
+Type=simple
+User=netguard
+Group=netguard
+WorkingDirectory=/opt/netguard/backend
+EnvironmentFile=/etc/netguard/netguard.env
+Environment=FIREWALL_ROLE=worker
+ExecStart=/opt/netguard/backend/.venv/bin/python worker.py
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netguard /opt/netguard/backend/logs
+CapabilityBoundingSet=
+AmbientCapabilities=
+# This unit never enables capture by itself. To opt in, set
+# FIREWALL_ENABLE_SNIFFER=1 in the EnvironmentFile and grant NET_RAW/NET_ADMIN.
+
+[Install]
+WantedBy=multi-user.target
