@@ -41,7 +41,8 @@ plan files describe intended future work, not delivered functionality.
 - `sniffer/` — Scapy capture helpers (used only when capture is enabled).
 - `engine/packet/` — packet normalization.
 - `engine/firewall/`, `engine/IDS/`, `engine/IPS/` — rule evaluation and the
-  detection/response pipeline.
+  detection/response pipeline. IDS adds explainable reasons, deduplication,
+  and detection-only suppression.
 - `engine/scoring/`, `engine/flow/`, `engine/features/`, `engine/detection/anomaly/` —
   scoring, flows, features, and anomaly detection.
 - `engine/learning/`, `engine/intelligence/`, `engine/models/`, `engine/health/`,
@@ -49,6 +50,7 @@ plan files describe intended future work, not delivered functionality.
   experimental adaptive-defense modules covered by unit tests, not production
   validation.
 - `engine/rules/` — JSON rule sets under `firewall/`, `IDS/`, `IPS/`, `scoring/`.
+  The IDS pack has a versioned, checksummed manifest and strict validation.
 - `logs/` — legacy runtime JSON logs (generated locally).
 - `data/` — runtime SQLite database, backed up with `manage.py backup-db`.
 - `tests/` — pytest suites; `python -m pytest` from the repo root uses `pytest.ini`.

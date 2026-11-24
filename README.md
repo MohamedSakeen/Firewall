@@ -43,7 +43,7 @@ The backend evaluates simulated or captured traffic, raises and correlates secur
 **Core defense pipeline** (capture is optional and opt-in)
 - Passive packet capture and normalization (IP/TCP/UDP/ICMP metadata, TCP flags, payload sizes).
 - Stateful firewall evaluation with connection/session tracking and configurable inbound/outbound rules.
-- IDS detection for port scans, SYN/UDP floods, and suspicious authentication patterns, with sliding time windows and threat scoring.
+- IDS detection for port scans, SYN/UDP floods, and suspicious authentication patterns, with sliding time windows, threat scoring, versioned/checksummed rule packs, explainable reasons, and suppression.
 - IPS response: temporary/permanent bans, quarantine, whitelists, escalation of repeated low-severity alerts, and unblock timers.
 - Deep packet inspection viewer with raw byte/hex and TCP flag breakdowns.
 
@@ -117,7 +117,7 @@ Firewall/
 │   ├── engine/
 │   │   ├── packet/                 # Packet parsing, extraction, normalization
 │   │   ├── firewall/               # Rule evaluation, stateful tracking, blocker, state table
-│   │   ├── IDS/                    # Detection pipeline, recon/flood detectors, alert manager, time windows
+│   │   ├── IDS/                    # Detection pipeline, detectors, explanations, suppression, dedupe
 │   │   ├── IPS/                    # Ban/block managers, quarantine, whitelist, escalation
 │   │   ├── scoring/                # Threat scoring, severity, correlation, response engines
 │   │   ├── detection/anomaly/      # Statistical, contextual, isolation-forest detectors
@@ -130,7 +130,7 @@ Firewall/
 │   │   ├── forensics/              # Replay engine and timeline builder
 │   │   ├── health/                 # Self-monitoring and security posture engine
 │   │   ├── models/                 # Model/dataset registry and governance
-│   │   ├── rules/                  # JSON rule sets (firewall, IDS, IPS, scoring)
+│   │   ├── rules/                  # Versioned JSON rule packs (firewall, IDS, IPS, scoring)
 │   │   ├── evaluator.py            # Packet evaluation entry point
 │   │   └── policy_loader.py        # Policy loading helpers
 │   ├── sniffer/                    # Scapy sniffing helpers
@@ -379,6 +379,7 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 | --- | --- | --- |
 | GET | `/api/health` | System health check |
 | GET | `/api/alerts` | IDS alerts |
+| GET | `/api/alerts/detection` | Rule-pack version and recent suppression events |
 | GET | `/api/dashboard/alerts/recent` | Recent alerts for the dashboard |
 | GET | `/api/dashboard/stats` | Aggregate dashboard statistics |
 | GET | `/api/traffic` | Captured traffic entries |
@@ -434,6 +435,9 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 
 - **Firewall / IDS / IPS rules:** JSON files under `backend/engine/rules/` (`firewall/`, `IDS/`, `IPS/`, `scoring/`). Edit them directly or through the dashboard's **Rules Manager**.
   - `firewall/rules.json` holds `blocked_ips` and `blocked_ports` lists used by the firewall engine.
+  - `backend/engine/rules/IDS/manifest.json` names the IDS rule files and their SHA-256 checksums. A missing or changed manifest/rule file fails fast at import instead of silently using partial rules.
+  - `backend/engine/rules/IDS/suppression.json` is an empty-by-default allow-list of source IPs/CIDRs and rule IDs. Suppression only filters alerts; it does not grant access or disable blocking.
+  - Alerts include short machine-readable reasons such as observed count, threshold, and window. Raw packet payloads are not copied into reasons.
 - **Durable events:** SQLite tables for users, audit records, and redacted packet/alert/incident summaries are stored under `backend/data/` by default. `backend/logs/traffic.json` and `backend/logs/alerts.json` are legacy JSON logs used by individual services.
 - **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
 - **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.
@@ -482,7 +486,7 @@ npm run lint
 
 - This project is designed for **local/lab, single-host use only**. The API now requires login, supports admin/operator/viewer roles, CSRF tokens, login rate limits, and audit logs. CORS is limited to the local dashboard origins by default, debug mode is off, and the backend binds to localhost by default. Do not expose any component to untrusted networks or the internet before a production security review.
 - Packet capture is passive and opt-in. Capture and OS-level blocking depend on platform, driver, and privileges; do not assume either works outside a lab. Run only on interfaces you are authorized to monitor.
-- Rule files and logs are stored locally; protect them appropriately and review any IP bans before using this on a shared machine.
+- Rule files and logs are stored locally; protect them appropriately and review any IP bans before using this on a shared machine. IDS rule `action` values are advisory labels; only implemented detectors emit alerts, and unsupported rule types are ignored rather than executed.
 - A malicious or misconfigured rule set can block legitimate traffic. Use the policy simulator and kill switch when experimenting with response policies.
 - No formal security audit has been completed and there is no production deployment pipeline. Basic CI runs the backend tests and frontend build; the planning documents describe intended future work, not delivered features.
 - `npm audit` currently reports 0 vulnerabilities after refreshing the frontend lockfile. Re-run `npm audit` after any dependency change.

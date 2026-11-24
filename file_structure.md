@@ -15,7 +15,7 @@ Firewall/
 │   ├── engine/
 │   │   ├── packet/                   # packet normalization
 │   │   ├── firewall/                 # firewall rule evaluation and state tracking
-│   │   ├── IDS/                      # detection pipeline and detectors
+│   │   ├── IDS/                      # detectors, explanations, suppression, dedupe
 │   │   ├── IPS/                      # block, ban, quarantine, whitelist helpers
 │   │   ├── scoring/                  # threat scoring and severity
 │   │   ├── flow/                     # flow tracking and window aggregation
@@ -30,7 +30,7 @@ Firewall/
 │   │   ├── hunting/                  # guided threat-hunting queries
 │   │   ├── deception/                # honeypot listener/manager
 │   │   ├── forensics/                # replay and timeline
-│   │   └── rules/                    # JSON rule sets (firewall/, IDS/, IPS/, scoring/)
+│   │   └── rules/                    # versioned rule packs: manifest + JSON rule files
 │   ├── auth/                         # users, Argon2id hashes, sessions, CSRF, audit
 │   ├── storage/                      # versioned SQLite event store
 │   ├── sniffer/                      # optional Scapy capture helpers

@@ -17,6 +17,13 @@ All notable changes to this project are documented here.
 - Added login/logout sessions, CSRF tokens, login rate limits, and audit logs.
 - Added a CLI for creating admin, operator, and viewer accounts.
 
+### Detection
+
+- Added a versioned, checksummed IDS rule pack with strict schema validation.
+- Added deterministic benign/malicious traffic tests and alert deduplication.
+- Added machine-readable alert reasons and an empty-by-default suppression allow-list.
+- Added an authenticated endpoint for rule-pack provenance and suppression events.
+
 ### Storage
 
 - Added versioned SQLite storage for durable packet, alert, and incident summaries.
