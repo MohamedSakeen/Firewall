@@ -1,15 +1,10 @@
-<<<<<<< HEAD
 import { useState, useEffect, useRef, useCallback } from 'react';
-=======
-import { useState, useEffect, useRef } from 'react';
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 import { Play, Pause, Search } from 'lucide-react';
 import { connectSocket } from '../services/socket';
 import { fetchLiveTraffic } from '../services/api';
 import Pagination from '../components/ui/Pagination';
 import ExportMenu from '../components/ui/ExportMenu';
 
-<<<<<<< HEAD
 const MAX_PACKETS = 500;
 
 const endpoint = (ip, port) => {
@@ -35,31 +30,35 @@ const normalizePacket = (p) => {
   };
 };
 
-=======
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 export default function PacketInspector() {
   const [packets, setPackets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
   const packetsRef = useRef([]);
-<<<<<<< HEAD
   const pausedRef = useRef(false);
 
   const loadHistory = useCallback(async () => {
+    setLoading(true);
     try {
       const history = await fetchLiveTraffic();
       const formatted = (Array.isArray(history) ? history : []).map(normalizePacket).reverse();
       packetsRef.current = formatted.slice(0, MAX_PACKETS);
       setPackets([...packetsRef.current]);
+      setError(null);
     } catch {
       setPackets([]);
+      setError('Unable to load packet history');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    const timer = setTimeout(loadHistory, 0);
     const socket = connectSocket();
     const onPacket = (data) => {
       if (pausedRef.current) return;
@@ -67,49 +66,13 @@ export default function PacketInspector() {
       setPackets([...packetsRef.current]);
     };
     socket.on('packet', onPacket);
-    return () => { socket.off('packet', onPacket); };
+    return () => { clearTimeout(timer); socket.off('packet', onPacket); };
   }, [loadHistory]);
 
   const togglePaused = () => {
     pausedRef.current = !isPaused;
     setIsPaused(!isPaused);
   };
-=======
-  const MAX_PACKETS = 500;
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const history = await fetchLiveTraffic();
-        if (!mounted) return;
-        const formatted = (history || []).map((p, idx) => ({
-          id: idx + 1,
-          time: p.time?.split('T')[1]?.slice(0, 12) || p.time || '',
-          src: `${p.src_ip || '?'}:${p.src_port || ''}`,
-          dst: `${p.dst_ip || '?'}:${p.dst_port || ''}`,
-          proto: p.protocol || 'TCP',
-          len: p.payload_len || 64,
-          flags: p.tcp_flags ? String(p.tcp_flags) : 'SYN',
-          score: p.score || 0,
-        })).reverse();
-        packetsRef.current = formatted;
-        setPackets(formatted);
-      } catch {
-        console.warn('Failed to fetch initial traffic history');
-      }
-    })();
-
-    const socket = connectSocket();
-    socket.on('packet', (data) => {
-      if (isPaused) return;
-      packetsRef.current = [data, ...packetsRef.current].slice(0, MAX_PACKETS);
-      setPackets([...packetsRef.current]);
-    });
-
-    return () => { mounted = false; socket.off('packet'); };
-  }, [isPaused]);
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
   const handleSearchChange = (val) => {
     setSearch(val);
@@ -127,10 +90,6 @@ export default function PacketInspector() {
 
   return (
     <div className="flex flex-col h-full space-y-3">
-<<<<<<< HEAD
-=======
-      {/* Header (Checklist Section 10) */}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Packet Inspector</h1>
@@ -140,11 +99,7 @@ export default function PacketInspector() {
           <span className="text-[11px] font-mono text-[var(--text-muted)]">{packets.length} packets</span>
 
           <button
-<<<<<<< HEAD
             onClick={togglePaused}
-=======
-            onClick={() => setIsPaused(!isPaused)}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded transition-colors"
             style={{
               background: isPaused ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
@@ -173,45 +128,43 @@ export default function PacketInspector() {
             data={filteredPackets}
             currentPageData={pagedPackets}
             columns={[
-<<<<<<< HEAD
               { key: 'id', label: 'Frame ID' },
-=======
-              { key: 'id', label: 'Frame #' },
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
               { key: 'time', label: 'Time' },
               { key: 'src', label: 'Source' },
               { key: 'dst', label: 'Destination' },
               { key: 'proto', label: 'Protocol' },
               { key: 'len', label: 'Length' },
               { key: 'flags', label: 'Flags' },
-<<<<<<< HEAD
               { key: 'direction', label: 'Direction' },
               { key: 'decision', label: 'Decision' },
-=======
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             ]}
           />
         </div>
       </div>
+
+      {error && (
+        <div className="rounded px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-threat)' }}>
+          {error}
+        </div>
+      )}
 
       <div className="flex-1 rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="overflow-auto flex-1">
           <table className="w-full text-left font-mono">
             <thead>
               <tr className="sticky top-0" style={{ background: 'var(--bg-inset)', borderBottom: '1px solid var(--border-subtle)', zIndex: 1 }}>
-<<<<<<< HEAD
                 {['ID', 'Time', 'Source', 'Destination', 'Proto', 'Length', 'Flags', 'Direction', 'Decision'].map(h => (
-=======
-                {['#', 'Time', 'Source', 'Destination', 'Proto', 'Length', 'Flags'].map(h => (
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
                   <th key={h} className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="text-xs">
               {filteredPackets.length === 0 && (
-<<<<<<< HEAD
-                <tr><td className="px-3 py-6 text-center text-sm font-sans text-[var(--text-muted)]" colSpan={9}>Waiting for packets...</td></tr>
+                <tr>
+                  <td className="px-3 py-6 text-center text-sm font-sans text-[var(--text-muted)]" colSpan={9}>
+                    {loading ? 'Loading packet history...' : packets.length === 0 ? (error ? 'No packet data available' : 'Waiting for packets...') : 'No packets matching filter'}
+                  </td>
+                </tr>
               )}
               {pagedPackets.map((p, i) => {
                 const score = Number(p.score);
@@ -236,40 +189,10 @@ export default function PacketInspector() {
                   </tr>
                 );
               })}
-=======
-                <tr><td className="px-3 py-6 text-center text-sm font-sans text-[var(--text-muted)]" colSpan={7}>Waiting for packets...</td></tr>
-              )}
-              {pagedPackets.map((p, i) => (
-                <tr
-                  key={p.id || (startIndex + i)}
-                  className="transition-colors"
-                  style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    background: (p.score || 0) > 80 ? 'rgba(239,68,68,0.06)' : (p.score || 0) > 50 ? 'rgba(245,158,11,0.06)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = (p.score || 0) > 80 ? 'rgba(239,68,68,0.06)' : (p.score || 0) > 50 ? 'rgba(245,158,11,0.06)' : 'transparent';
-                  }}
-                >
-                  <td className="px-3 py-1.5 text-[var(--text-muted)]">{p.id}</td>
-                  <td className="px-3 py-1.5 text-[var(--text-secondary)]">{p.time}</td>
-                  <td className="px-3 py-1.5" style={{ color: 'var(--color-primary)' }}>{p.src}</td>
-                  <td className="px-3 py-1.5 text-[var(--text-primary)]">{p.dst}</td>
-                  <td className="px-3 py-1.5 text-[var(--text-secondary)]">{p.proto}</td>
-                  <td className="px-3 py-1.5 text-[var(--text-secondary)]">{p.len}</td>
-                  <td className="px-3 py-1.5 text-[var(--text-secondary)]">{p.flags}</td>
-                </tr>
-              ))}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
             </tbody>
           </table>
         </div>
 
-<<<<<<< HEAD
-=======
-        {/* 50 records/page Pagination (Checklist Section 12) */}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         <Pagination
           totalItems={filteredPackets.length}
           currentPage={currentPage}

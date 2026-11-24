@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
-=======
-import { useState, useEffect } from 'react';
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Search } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
@@ -18,7 +14,6 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-<<<<<<< HEAD
 const metricValue = (value) => value === null || value === undefined || value === '' ? '—' : String(value).toLocaleString();
 
 export default function NetworkTraffic() {
@@ -26,16 +21,10 @@ export default function NetworkTraffic() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [socketConnected, setSocketConnected] = useState(null);
-=======
-export default function NetworkTraffic() {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
-<<<<<<< HEAD
   const loadSummary = useCallback(async () => {
     try {
       const data = await fetchTrafficSummary();
@@ -78,44 +67,6 @@ export default function NetworkTraffic() {
 
   const statusLabel = socketConnected === null ? 'CONNECTING…' : socketConnected ? 'STREAMING' : 'OFFLINE';
   const statusColor = socketConnected ? 'var(--color-success)' : socketConnected === false ? 'var(--color-threat)' : 'var(--color-warning)';
-=======
-  useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        const data = await fetchTrafficSummary();
-        if (mounted) setSummary(data);
-      } catch {
-        console.warn('Failed to fetch traffic summary');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-
-    const socket = connectSocket();
-    socket.on('packet', (pkt) => {
-      setSummary(prev => {
-        if (!prev) return prev;
-        const isRx = pkt.src?.startsWith('10.');
-        return {
-          ...prev,
-          totalPackets: (prev.totalPackets || 0) + 1,
-          rxCount: isRx ? (prev.rxCount || 0) + 1 : (prev.rxCount || 0),
-          txCount: !isRx ? (prev.txCount || 0) + 1 : (prev.txCount || 0),
-        };
-      });
-    });
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-      socket.off('packet');
-    };
-  }, []);
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
 
   if (loading) {
     return (
@@ -148,16 +99,11 @@ export default function NetworkTraffic() {
 
   return (
     <div className="space-y-4">
-<<<<<<< HEAD
-=======
-      {/* Header (Checklist Section 10) */}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-heading)]">Traffic</h1>
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time packet counters, throughput volume, and session flows</p>
         </div>
-<<<<<<< HEAD
         <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: statusColor }}>
           <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
           {statusLabel}
@@ -175,19 +121,6 @@ export default function NetworkTraffic() {
         <StatCard title="TX Packets" value={metricValue(summary?.txCount)} subtitle="Sent" />
         <StatCard title="Active Connections" value={metricValue(activeConnections.length)} subtitle="Recent sessions" />
         <StatCard title="Packets Observed" value={metricValue(summary?.totalPackets)} subtitle="Since process start" />
-=======
-        <div className="flex items-center gap-1.5 text-xs font-mono" style={{ color: 'var(--color-success)' }}>
-          <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-success)' }} />
-          MONITORING
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard title="RX Packets" value={(summary?.rxCount ?? 0).toLocaleString()} subtitle="Received" status="healthy" />
-        <StatCard title="TX Packets" value={(summary?.txCount ?? 0).toLocaleString()} subtitle="Sent" />
-        <StatCard title="Active Connections" value={(activeConnections.length).toLocaleString()} subtitle="Recent sessions" />
-        <StatCard title="Total Packets (24h)" value={(summary?.totalPackets ?? 0).toLocaleString()} subtitle="In & Out" />
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       </div>
 
       <div className="rounded p-3" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
@@ -195,7 +128,6 @@ export default function NetworkTraffic() {
           Bandwidth Usage (packets/min)
         </div>
         <div className="h-56 w-full">
-<<<<<<< HEAD
           {bandwidthData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={bandwidthData}>
@@ -213,22 +145,6 @@ export default function NetworkTraffic() {
         </div>
       </div>
 
-=======
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={bandwidthData.length > 0 ? bandwidthData : [{ time: '00:00', rx: 0, tx: 0 }]}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-              <XAxis dataKey="time" stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
-              <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11 }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Area type="monotone" dataKey="rx" name="RX" stroke="#10B981" fill="rgba(16,185,129,0.08)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="tx" name="TX" stroke="#3B82F6" fill="rgba(59,130,246,0.08)" strokeWidth={1.5} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Active Connections Table */}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
       <div className="rounded overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
         <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
           <div className="flex items-center gap-3">
@@ -258,10 +174,7 @@ export default function NetworkTraffic() {
                 { key: 'dst', label: 'Destination' },
                 { key: 'state', label: 'State' },
                 { key: 'bytes', label: 'Bytes' },
-<<<<<<< HEAD
                 { key: 'duration', label: 'Duration' },
-=======
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
               ]}
             />
           </div>
@@ -275,39 +188,23 @@ export default function NetworkTraffic() {
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Destination</th>
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>State</th>
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Data</th>
-<<<<<<< HEAD
                 <th className="px-3 py-2 text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Duration</th>
-=======
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
               </tr>
             </thead>
             <tbody className="font-mono text-xs">
               {filteredConnections.length === 0 && (
-<<<<<<< HEAD
                 <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={5}>No active connections</td></tr>
               )}
               {pagedConnections.map(c => (
                 <tr
                   key={c.id ?? `${c.src || ''}-${c.dst || ''}`}
-=======
-                <tr><td className="px-3 py-6 text-center text-sm" style={{ color: 'var(--text-muted)' }} colSpan={4}>No active connections</td></tr>
-              )}
-              {pagedConnections.map(c => (
-                <tr
-                  key={c.id}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
                   className="transition-colors"
                   style={{ borderBottom: '1px solid var(--border-subtle)' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-<<<<<<< HEAD
                   <td className="px-3 py-2" style={{ color: 'var(--color-primary)' }}>{c.src ?? '—'}</td>
                   <td className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>{c.dst ?? '—'}</td>
-=======
-                  <td className="px-3 py-2" style={{ color: 'var(--color-primary)' }}>{c.src}</td>
-                  <td className="px-3 py-2" style={{ color: 'var(--text-primary)' }}>{c.dst}</td>
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
                   <td className="px-3 py-2">
                     <span
                       className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-[2px]"
@@ -316,28 +213,17 @@ export default function NetworkTraffic() {
                         color: c.state === 'ESTABLISHED' ? 'var(--color-success)' : 'var(--text-muted)',
                       }}
                     >
-<<<<<<< HEAD
                       {c.state ?? '—'}
                     </span>
                   </td>
                   <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.bytes ?? '—'}</td>
                   <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.duration ?? '—'}</td>
-=======
-                      {c.state}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>{c.bytes}</td>
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-<<<<<<< HEAD
-=======
-        {/* 50 records/page Pagination (Checklist Section 12) */}
->>>>>>> 0ccd9f586ab23ec2d57b5097d541511ecc130955
         <Pagination
           totalItems={filteredConnections.length}
           currentPage={currentPage}
