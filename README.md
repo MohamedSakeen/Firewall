@@ -95,7 +95,7 @@ Traffic flows from the sniffer through normalization, firewall state checks, and
 | --- | --- |
 | **Backend** | Python 3.10+, Flask, Flask-CORS, Flask-SocketIO, Eventlet, Scapy, scikit-learn, pytest |
 | **Frontend** | React 19, Vite, Redux Toolkit, React Router, Tailwind CSS v4, Framer Motion, Recharts, Axios, Socket.IO Client |
-| **Capture driver** | Npcap (Windows; installer provided as `npcap-1.88.exe`) |
+| **Capture driver** | Npcap (Windows; install from the official site, not bundled here) |
 | **Data storage** | SQLite for accounts, audit records, and durable events; local JSON rule files; some JSON log files |
 
 ---
@@ -165,7 +165,6 @@ Firewall/
 ├── docker-compose.yml              # Localhost-only Compose setup
 ├── docker/                         # nginx config and Docker notes
 ├── deploy/systemd/                 # Optional API and capture worker units
-├── npcap-1.88.exe                  # Npcap installer for Windows packet capture
 ├── PROJECT_MEMORY.md               # Detailed architecture/project reference
 └── README.md                       # This document
 ```
@@ -177,7 +176,7 @@ Firewall/
 - **Operating system:** Windows, Linux, or macOS. Nothing here is production-tested.
 - **Python:** 3.10 or newer (with `venv` and `pip`).
 - **Node.js:** 20 or newer (npm 9+).
-- **Optional, only for packet capture:** On Windows install [Npcap](https://npcap.com/) with **WinPcap API compatibility mode** enabled. An installer is included at the repository root as `npcap-1.88.exe`. Raw capture needs Administrator/root privileges; the default launcher does not use it.
+- **Optional, only for packet capture:** On Windows install [Npcap](https://npcap.com/) with **WinPcap API compatibility mode** enabled. Download it from the official site; this repository does not bundle third-party installers. Raw capture needs Administrator/root privileges; the default launcher does not use it.
 
 ---
 
@@ -225,7 +224,7 @@ other users. Passwords are hashed with Argon2id and are never written in plain t
 
 ### 5. Packet capture driver (Windows only, optional)
 
-Only needed if you explicitly enable the sniffer. Run `npcap-1.88.exe` as Administrator and keep the default *WinPcap API compatibility* option selected, then reboot if prompted.
+Only needed if you explicitly enable the sniffer. Download Npcap from [npcap.com](https://npcap.com/), install it as Administrator with the *WinPcap API compatibility* option selected, and reboot if prompted.
 
 ---
 
@@ -360,13 +359,13 @@ The UI is a dark, responsive SOC console. Routes are defined in `frontend/src/Ap
 | `/assets` | Asset Inventory | Managed assets and relationships |
 | `/models` | Model Health | Model registry, governance, and health status |
 | `/firewall` | Firewall | Stateful connection table, policies, and quick block controls |
-| `/ids` | IDS Alerts | Security event log with severity and threat scores |
-| `/ips` | IPS Actions | Bans, quarantine, timers, and whitelist manager |
+| `/ids` | IDS Alerts | Security event log with severity, threat scores, and rule-pack provenance |
+| `/ips` | IPS Actions | Bans, quarantine, timers, admin approvals, and the durable response action log |
 | `/packets` | Packet Inspector | Deep packet inspection (raw bytes/hex, TCP flags) |
 | `/traffic` | Network Traffic | Live packet stream with filters and search |
 | `/rules` | Rules Manager | Visual editor for firewall/IDS/IPS rules |
 | `/logs` | Logs Viewer | Searchable, exportable system and engine logs |
-| `/settings` | Settings | Capture, connection, and alert threshold configuration |
+| `/settings` | Settings | Connection status, operational health, process metrics, and role-limited response controls |
 
 ---
 

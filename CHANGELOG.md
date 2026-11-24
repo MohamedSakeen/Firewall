@@ -54,6 +54,7 @@ All notable changes to this project are documented here.
 - Replaced shell-string firewall commands with argument-based commands.
 - Added strict validation for block, unblock, firewall rule, and rule-file inputs.
 - Added API and enforcement safety tests.
+- Removed the bundled Npcap installer; Windows users now obtain it from the official site.
 
 ### Build
 
@@ -61,6 +62,12 @@ All notable changes to this project are documented here.
 - Added CI for backend tests and frontend build.
 - Reduced `npm audit` findings to zero at the time of this change.
 - Added optional localhost-only Docker Compose, nginx, and systemd examples with capture left off by default.
+
+### Dashboard
+
+- Aligned Settings with the minimal public health endpoint and added authenticated operational health and metrics views.
+- Added admin-only approval, autonomy, kill-switch, and rollback controls plus a read-only response action log.
+- Added IDS rule-pack provenance to the alert page and optional reasons for unblock actions.
 
 ### Documentation
 

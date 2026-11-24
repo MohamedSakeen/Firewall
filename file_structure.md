@@ -78,7 +78,6 @@ Firewall/
 ├── docker/                           # nginx config and Docker notes
 ├── deploy/systemd/                   # optional API and capture worker units
 ├── .github/workflows/ci.yml          # backend tests + frontend build
-├── npcap-1.88.exe                    # optional Windows capture driver installer
 ├── PROJECT_MEMORY.md
 ├── README.md
 └── top-level *_plan.md files         # planning documents, not delivered features

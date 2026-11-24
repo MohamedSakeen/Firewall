@@ -6,7 +6,7 @@ Use this for a fresh single-host lab install. This is not a production deploymen
 
 - Python 3.10+ with `venv` and `pip`
 - Node.js 20+ with npm
-- Optional: Npcap on Windows only if you later enable packet capture
+- Optional: Npcap on Windows only if you later enable packet capture; download it from [npcap.com](https://npcap.com/) rather than from this repository
 
 ## Steps
 
