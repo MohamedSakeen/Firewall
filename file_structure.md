@@ -10,7 +10,7 @@ Firewall/
 │   │   ├── api.py                    # Flask app factory + local-lab server entry point
 │   │   ├── routes/                   # alert, assets, autonomy, events, firewall,
 │   │   │                             # hunting, incidents, ips, learning, logs,
-│   │   │                             # posture, response, rules, simulation, traffic
+│   │   │                             # posture, response, rules, simulation, traffic, ops
 │   │   └── services/                 # live_store.py, log_service.py, websocket_service.py
 │   ├── engine/
 │   │   ├── packet/                   # packet normalization
@@ -32,13 +32,14 @@ Firewall/
 │   │   ├── forensics/                # replay and timeline
 │   │   └── rules/                    # versioned rule packs: manifest + JSON rule files
 │   ├── auth/                         # users, Argon2id hashes, sessions, CSRF, audit
+│   ├── ops/                          # redacting logs, metrics, health, alerts, retention
 │   ├── storage/                      # versioned SQLite event store
 │   ├── sniffer/                      # optional Scapy capture helpers
-│   ├── logs/                         # legacy runtime JSON logs (local only)
+│   ├── logs/                         # legacy JSON logs + generated .jsonl files (local only)
 │   ├── data/                         # SQLite DB ignored by git (accounts/audit/events)
 │   ├── tests/                        # pytest suites
 │   ├── main.py                       # standalone CLI sniffer/detection demo
-│   ├── manage.py                     # accounts, backup, prune, and stats CLI
+│   ├── manage.py                     # accounts, backup, event/log prune, and stats CLI
 │   ├── worker.py                     # capture-only process role
 │   ├── requirements.txt              # pinned Python dependencies
 │   └── .venv/                        # created by start_all.py; git-ignored
@@ -62,7 +63,8 @@ Firewall/
 │   ├── vite.config.js
 │   ├── postcss.config.js
 │   └── tailwind.config.js
-├── docs/                             # architecture audit and future-phase plans
+├── docs/                             # architecture audit, runbooks, future-phase plans
+│   └── runbooks/                     # install, upgrade, backup/restore, incident triage
 ├── .env.example                      # local-only configuration names and dummy values
 ├── .gitignore
 ├── pytest.ini                        # pythonpath = backend, testpaths = backend/tests

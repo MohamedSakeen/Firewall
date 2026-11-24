@@ -24,6 +24,14 @@ All notable changes to this project are documented here.
 - Added durable response action logs with actor and reason for proposals, approvals, blocks, unblocks, and rollbacks.
 - Added real callback-based rollback and admin approval/rejection endpoints.
 
+### Operations
+
+- Added redacting JSON logs, process-local metrics, and authenticated health endpoints.
+- Added local deduplicated alert notifications with an optional loopback-only webhook.
+- Added generated-log retention with a `prune-logs` CLI command.
+- Added local install, upgrade, backup/restore, and incident-triage runbooks.
+- Kept the public health check minimal for launcher probes.
+
 ### Detection
 
 - Added a versioned, checksummed IDS rule pack with strict schema validation.

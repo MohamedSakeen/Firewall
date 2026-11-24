@@ -19,8 +19,9 @@ blocking depends on the platform, drivers, and privileges; it is not guaranteed
 by this project.
 
 There is no completed formal security audit and no production deployment. A basic
-CI workflow runs the backend tests and frontend build. The `docs/` and top-level
-plan files describe intended future work, not delivered functionality.
+CI workflow runs the backend tests and frontend build. `docs/runbooks/` has
+short local-lab operations guides. The `docs/` and top-level plan files also
+contain intended future work, not delivered functionality.
 
 ## Backend (`backend/`)
 
@@ -28,13 +29,15 @@ plan files describe intended future work, not delivered functionality.
   the local-lab server entry point. It reads the `FIREWALL_*` settings directly;
   capture is opt-in and localhost binding is the default.
 - `api/routes/` — REST blueprints: `alert`, `assets`, `autonomy`, `events`,
-  `firewall`, `hunting`, `incidents`, `ips`, `learning`, `logs`, `posture`,
+  `firewall`, `hunting`, `incidents`, `ips`, `learning`, `logs`, `ops`, `posture`,
   `response`, `rules`, `simulation`, `traffic`.
 - `api/services/` — `live_store.py`, `log_service.py`, `websocket_service.py`.
 - `auth/` — SQLite-backed users and audit logs, Argon2id hashes, Flask-Login
   sessions, CSRF protection, rate limits, and role/path checks.
-- `manage.py` — CLI to create accounts, back up the database, prune events, and
-  show counts. No default credentials exist.
+- `ops/` — redacting JSON logs, process-local metrics, authenticated health
+  snapshots, local alert queue with a loopback-only webhook, and log retention.
+- `manage.py` — CLI to create accounts, back up the database, prune events and
+  logs, and show counts. No default credentials exist.
 - `storage/events.py` — versioned SQLite event store with redaction, retention,
   and parameterized queries.
 - `worker.py` — capture-only entry point for `FIREWALL_ROLE=worker`.
@@ -52,7 +55,8 @@ plan files describe intended future work, not delivered functionality.
   validation.
 - `engine/rules/` — JSON rule sets under `firewall/`, `IDS/`, `IPS/`, `scoring/`.
   The IDS pack has a versioned, checksummed manifest and strict validation.
-- `logs/` — legacy runtime JSON logs (generated locally).
+- `logs/` — legacy runtime JSON logs plus generated `app.jsonl` and
+  `notifications.jsonl` (locally generated, not tracked).
 - `data/` — runtime SQLite database, backed up with `manage.py backup-db`.
 - `tests/` — pytest suites; `python -m pytest` from the repo root uses `pytest.ini`.
 - `requirements.txt` — pinned direct dependencies. Install into `backend/.venv`,
@@ -97,6 +101,7 @@ the `VITE_*` values, and the backend reads `FIREWALL_HOST`, `FIREWALL_PORT`,
 `FIREWALL_ALLOWED_ORIGINS`, `FIREWALL_ENABLE_SNIFFER`, `FIREWALL_ROLE`,
 `FIREWALL_EVENT_RETENTION_DAYS`, `FIREWALL_RESPONSE_MODE`,
 `FIREWALL_AUTONOMY_LEVEL`, `FIREWALL_AUTO_BLOCK_MAX_PER_MINUTE`,
-`FIREWALL_AUTO_BLOCK_PER_IP_PER_MINUTE`, `FIREWALL_SECRET_KEY`,
-`FIREWALL_DB_PATH`, and `FIREWALL_COOKIE_SECURE` directly. The launcher sets safe
-defaults in the child process environment.
+`FIREWALL_AUTO_BLOCK_PER_IP_PER_MINUTE`, `FIREWALL_LOG_RETENTION_DAYS`,
+`FIREWALL_ALERT_WEBHOOK_URL`, `FIREWALL_SECRET_KEY`, `FIREWALL_DB_PATH`, and
+`FIREWALL_COOKIE_SECURE` directly. The launcher sets safe defaults in the child
+process environment.

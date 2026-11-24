@@ -109,16 +109,17 @@ Firewall/
 │   │   ├── api.py                  # Flask app factory, blueprint registration, sniffer thread, server entry point
 │   │   ├── routes/                 # REST blueprints (traffic, alerts, ips, firewall, rules, logs,
 │   │   │                           #   incidents, learning, simulation, response, hunting, assets,
-│   │   │                           #   events, autonomy, posture)
+│   │   │                           #   events, autonomy, posture, ops)
 │   │   └── services/               # WebSocket broadcasts and JSON log service
 │   ├── auth/                       # Users, sessions, CSRF, audit logs
+│   ├── ops/                        # Redacting logs, metrics, health, alerts, retention
 │   ├── storage/                    # Versioned SQLite event store
 │   ├── data/                       # Runtime SQLite database (git-ignored)
 │   ├── engine/
 │   │   ├── packet/                 # Packet parsing, extraction, normalization
 │   │   ├── firewall/               # Rule evaluation, stateful tracking, blocker, state table
 │   │   ├── IDS/                    # Detection pipeline, detectors, explanations, suppression, dedupe
-│   │   ├── IPS/                    # Ban/block managers, quarantine, whitelist, escalation
+│   │   ├── IPS/                    # Response controller, blocks, bans, allow-list, escalation
 │   │   ├── scoring/                # Threat scoring, severity, correlation, response engines
 │   │   ├── detection/anomaly/      # Statistical, contextual, isolation-forest detectors
 │   │   ├── features/               # Feature extraction and context building
@@ -377,7 +378,7 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/health` | System health check |
+| GET | `/api/health` | Minimal public launcher check (`{"status":"ok"}`) |
 | GET | `/api/alerts` | IDS alerts |
 | GET | `/api/alerts/detection` | Rule-pack version and recent suppression events |
 | GET | `/api/dashboard/alerts/recent` | Recent alerts for the dashboard |
@@ -425,6 +426,8 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
 | POST | `/api/responses/approvals/<id>/approve` | Approve a pending block (admin) |
 | POST | `/api/responses/approvals/<id>/reject` | Reject a pending block (admin) |
 | GET | `/api/responses/actions` | Durable block/unblock/approval action log |
+| GET | `/api/ops/health` | Authenticated operational health snapshot |
+| GET | `/api/ops/metrics?format=prometheus` | Process-local metrics (JSON or Prometheus text) |
 | GET | `/api/autonomy/status` | Autonomy status |
 | POST | `/api/autonomy/level` | Set autonomy level |
 | POST | `/api/autonomy/kill-switch` | Engage kill switch |
@@ -446,6 +449,9 @@ All REST routes are prefixed with `http://localhost:5000`. The WebSocket endpoin
   - `backend/engine/rules/IPS/whitelist.json` accepts IPs and CIDRs. A `/0` entry or malformed file disables automated enforcement instead of allowing everything.
   - `FIREWALL_AUTONOMY_LEVEL` defaults to `LEVEL_1_RECOMMEND`, which permits detection but not enforcement. Raise it deliberately before using `auto` mode.
   - Every proposal, approval, rejection, block, unblock, and rollback is written to the `response_actions` table with an actor and reason. The kill switch also blocks manual `/api/block` calls until reset.
+- **Operations:** Application logs are redacted JSON lines on stderr and `backend/logs/app.jsonl`. `GET /api/ops/health` reports database, event, response, capture, and autonomy state without packet details; `GET /api/ops/metrics` exposes process-local counters and gauges. High/critical IDS alerts and enforcement failures are appended to `backend/logs/notifications.jsonl` with deduplication.
+  - `FIREWALL_ALERT_WEBHOOK_URL` is optional and only accepts loopback hosts (`localhost`, `127.0.0.1`, `::1`) with no credentials or redirects. Leave it empty to keep alerts local.
+  - `FIREWALL_LOG_RETENTION_DAYS` (default 30) prunes old flat `.log`/`.jsonl` files at startup; `python backend/manage.py prune-logs --days 30` does the same on demand. Metrics are process-local and reset on restart.
 - **Durable events:** SQLite tables for users, audit records, and redacted packet/alert/incident summaries are stored under `backend/data/` by default. `backend/logs/traffic.json` and `backend/logs/alerts.json` are legacy JSON logs used by individual services.
 - **Backend host/port:** Both the launcher and `python api/api.py` honor `FIREWALL_HOST` / `FIREWALL_PORT` and default to `127.0.0.1:5000`. Debug mode is off.
 - **Frontend API/socket URLs:** `frontend/src/services/api.js` and `frontend/src/services/socket.js` read `VITE_API_BASE_URL` and `VITE_SOCKET_URL`, falling back to `http://localhost:5000/api` and `http://localhost:5000`.
@@ -511,6 +517,7 @@ documents, not statements of delivered functionality:
 - `PROJECT_MEMORY.md` — architecture and subsystem reference
 - `file_structure.md` — current repository layout
 - `docs/architecture-audit.md` — architecture review
+- `docs/runbooks/` — local install, upgrade, backup/restore, and incident-triage guides
 - `docs/*-plan.md` and top-level `*_plan.md` files — future-phase plans
 
 Authentication is the final planned phase; none of these documents describe a
