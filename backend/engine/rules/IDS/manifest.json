@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "pack_version": "1.0.0",
+  "description": "Baseline single-host IDS rules; actions are advisory detection labels, never executed as commands.",
+  "rules": [
+    {
+      "file": "auth_rules.json",
+      "sha256": "5aa20c8ce4b1a33741b9a594dd62dad6945313b91cdbaae5358e7ccf1a6f5e58"
+    },
+    {
+      "file": "flood_rules.json",
+      "sha256": "c62b2fec1e7da2cb08a2cb34c940aa513ac4b145ef7f9f301c22dd553a14a669"
+    },
+    {
+      "file": "recon_rules.json",
+      "sha256": "e4028d3316b7f7f33ee849a5c4761a23c9e4421102fa07a23eac6dfd170e71e7"
+    }
+  ]
+}

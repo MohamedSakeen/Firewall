@@ -2,6 +2,8 @@ from datetime import datetime
 import json
 from pathlib import Path
 
+from .explanations import sanitize_reasons
+
 from engine.scoring.threat_tracker import (
     add_threat_event,
     get_threat_event
@@ -26,26 +28,26 @@ from engine.IPS.ips_pipeline import (
 LOG_DIR = Path(__file__).resolve().parent.parent.parent / "logs"
 
 
-def create_alert(attack_type, severity, src_ip, score):
+def create_alert(attack_type, severity, src_ip, score, reasons=None, rule_id=None):
     alert = {
         "timestamp": str(datetime.now()),
         "attack": attack_type,
         "severity": severity,
         "src_ip": src_ip,
-        "score": score
+        "score": score,
+        "rule_id": rule_id,
+        "reasons": sanitize_reasons(reasons),
     }
     with (LOG_DIR / "alerts.json").open("a") as f:
         f.write(json.dumps(alert) + '\n')
 
     print(f"[ALERT] \n{attack_type} \nfrom {src_ip}")
 
-
-
     add_threat_event(src_ip, attack_type, score)
     events = get_threat_event(src_ip)
     total_score = calculate_threat_score(events)
     severity = determine_severity(total_score)
-    process_ips_action(src_ip,severity)
+    process_ips_action(src_ip, severity)
     correlated_attacks = correlate_events(events)
 
     print(f"[SEVERITY]"

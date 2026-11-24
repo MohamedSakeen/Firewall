@@ -3,6 +3,8 @@ from collections import Counter
 from flask import Blueprint, jsonify
 
 from api.services.live_store import count_rule_entries, global_live_store
+from engine.IDS.detection_pipeline import get_rule_pack_info
+from engine.IDS.suppression import suppression_snapshot
 
 alert_bp = Blueprint("alerts", __name__, url_prefix="/api")
 
@@ -15,6 +17,15 @@ def get_alerts():
 @alert_bp.route("/dashboard/alerts/recent")
 def get_recent_alerts():
     return jsonify(global_live_store.alerts_snapshot(limit=10))
+
+
+@alert_bp.route("/alerts/detection")
+def get_detection_info():
+    """Expose rule-pack provenance and filtered detections with reasons."""
+    return jsonify({
+        "rule_pack": get_rule_pack_info(),
+        "suppressed": suppression_snapshot(limit=100),
+    })
 
 
 @alert_bp.route("/dashboard/stats")
